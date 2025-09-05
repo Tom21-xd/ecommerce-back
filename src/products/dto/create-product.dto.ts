@@ -2,6 +2,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsPositive,
   IsString,
 } from 'class-validator';
@@ -21,6 +22,7 @@ export class CreateProductDto {
   @IsNumber()
   @IsPositive()
   price: number;
-
-  containerId: number;
+  @IsOptional()
+  @IsInt()
+  containerId?: number;
 }

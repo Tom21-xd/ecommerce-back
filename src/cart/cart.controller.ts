@@ -22,8 +22,8 @@ import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { CartService } from './cart.service';
 
-@ApiTags('Cart')
 @UseGuards(JwtAuthGuard)
+@ApiTags('Cart')
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}

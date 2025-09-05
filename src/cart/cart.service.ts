@@ -1,14 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { AddItemDto } from './dto/add-item.dto';
 import { CheckoutDto } from './dto/checkout.dto';
 import { AddressType, OrderStatus, PaymentStatus, ShipmentStatus } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class CartService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private jwtService: JwtService,
+    private prisma: PrismaService,
+  ) {}
 
   private async findProduct(productId: number) {
     const p = await this.prisma.product.findUnique({ where: { id: productId }});

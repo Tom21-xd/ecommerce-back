@@ -23,9 +23,9 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AddressService } from './address.service';
 import { UpsertAddressDto } from './dto/addresses.dto';
 
-@ApiTags('Cart')
+@ApiTags('Addresses')
+@Controller('addresses')
 @UseGuards(JwtAuthGuard)
-@Controller('cart')
 export class AddressController {
   constructor(private readonly addressService:AddressService ) {}
   @Get()
