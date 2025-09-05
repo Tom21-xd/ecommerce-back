@@ -9,6 +9,7 @@ async function bootstrap() {
     .setTitle('Marketplace')
     .setDescription('Marketplace prueba tecnica')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
