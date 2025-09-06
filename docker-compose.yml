@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 0518
-      POSTGRES_DB: marketplacedb
+      POSTGRES_PASSWORD: BBpCuomoUMgWJTOPikrXDaljusLqoRCO 
+      POSTGRES_DB: railway
     ports:
       - 5494:5432

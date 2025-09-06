@@ -7,37 +7,58 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 @Injectable()
 export class ProductsService {
   constructor(
-    // private JwtService: JwtService,
     private prismaService: PrismaService,
     private productContainerService: ProductContainerService,
   ) {}
 
   async create(createProductDto: CreateProductDto, id: number | null) {
-    const { name, sku, quantity, price, containerId } = createProductDto;
-
-    console.log('user', id);
+    const {
+      name,
+      sku,
+      quantity,
+      price,
+      containerId,
+      unidadId,
+      marcaId,
+      categoryIds,
+      images,
+      minStock,
+      isActive,
+    } = createProductDto;
 
     const existingProduct = await this.prismaService.product.findFirst({
-      where: { containerId, sku },
+      where: { containerId: containerId ?? undefined, sku },
     });
-
     if (existingProduct) {
-      throw new NotFoundException('Product with this SKU already exists.');
+      throw new NotFoundException(
+        'Product with this SKU already exists in this container.',
+      );
     }
 
-    let productContainerId;
-
-    if (!containerId) {
-      console.log('creating product container');
-
+    let productContainerId: number | undefined = containerId ?? undefined;
+    if (!productContainerId) {
       const productContainer = await this.productContainerService.create({
         name: '',
         userId: id,
       });
-
       productContainerId = productContainer.id;
-      console.log('productContainerId', productContainerId);
     }
+
+    const categoryData =
+      categoryIds && categoryIds.length > 0
+        ? { create: categoryIds.map((categoryId) => ({ categoryId })) }
+        : undefined;
+
+    const imageData =
+      images && images.length > 0
+        ? {
+            create: images.map((img) => ({
+              base64: img.base64,
+              alt: img.alt,
+              position: img.position ?? 0,
+            })),
+          }
+        : undefined;
 
     const product = await this.prismaService.product.create({
       data: {
@@ -45,7 +66,17 @@ export class ProductsService {
         sku,
         quantity,
         price,
-        containerId: containerId || productContainerId,
+        containerId: productContainerId,
+        unidadId,
+        marcaId,
+        ...(typeof minStock === 'number' ? { minStock } : {}),
+        ...(typeof isActive === 'boolean' ? { isActive } : {}),
+        ...(categoryData ? { ProductCategory: categoryData } : {}),
+        ...(imageData ? { ProductImage: imageData } : {}),
+      },
+      include: {
+        ProductCategory: true,
+        ProductImage: true,
       },
     });
 
