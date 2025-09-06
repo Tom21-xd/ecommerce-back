@@ -1,12 +1,8 @@
-/*
-  Warnings:
-
-  - You are about to alter the column `price` on the `Product` table. The data in that column could be lost. The data in that column will be cast from `DoublePrecision` to `Decimal(12,2)`.
-  - A unique constraint covering the columns `[containerId,sku]` on the table `Product` will be added. If there are existing duplicate values, this will fail.
-
-*/
 -- CreateEnum
 CREATE TYPE "AddressType" AS ENUM ('SHIPPING', 'BILLING');
+
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('SELLER', 'BUYER', 'ADMIN');
 
 -- CreateEnum
 CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'PAID', 'CANCELED', 'SHIPPED', 'DELIVERED', 'REFUNDED');
@@ -20,23 +16,47 @@ CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'CONFIRMED', 'FAILED', 'REFUNDED
 -- CreateEnum
 CREATE TYPE "ShipmentStatus" AS ENUM ('NOT_REQUIRED', 'PENDING', 'SHIPPED', 'DELIVERED', 'RETURNED');
 
--- DropIndex
-DROP INDEX "Product_sku_key";
+-- CreateTable
+CREATE TABLE "User" (
+    "id" SERIAL NOT NULL,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
+    "role" "Role" NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
--- AlterTable
-ALTER TABLE "Product" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN     "isActive" BOOLEAN NOT NULL DEFAULT true,
-ADD COLUMN     "marcaId" INTEGER,
-ADD COLUMN     "minStock" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "unidadId" INTEGER,
-ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ALTER COLUMN "price" SET DATA TYPE DECIMAL(12,2);
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
--- AlterTable
-ALTER TABLE "ProductContainer" ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+-- CreateTable
+CREATE TABLE "ProductContainer" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" INTEGER NOT NULL,
 
--- AlterTable
-ALTER TABLE "User" ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+    CONSTRAINT "ProductContainer_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Product" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "sku" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "price" DECIMAL(12,2) NOT NULL,
+    "minStock" INTEGER NOT NULL DEFAULT 0,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "containerId" INTEGER NOT NULL,
+    "unidadId" INTEGER,
+    "marcaId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "unidad" (
@@ -221,6 +241,30 @@ CREATE TABLE "review" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "ProductContainer_userId_idx" ON "ProductContainer"("userId");
+
+-- CreateIndex
+CREATE INDEX "Product_isActive_idx" ON "Product"("isActive");
+
+-- CreateIndex
+CREATE INDEX "Product_containerId_idx" ON "Product"("containerId");
+
+-- CreateIndex
+CREATE INDEX "Product_unidadId_idx" ON "Product"("unidadId");
+
+-- CreateIndex
+CREATE INDEX "Product_marcaId_idx" ON "Product"("marcaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Product_containerId_sku_key" ON "Product"("containerId", "sku");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "unidad_nombre_key" ON "unidad"("nombre");
 
 -- CreateIndex
@@ -277,26 +321,11 @@ CREATE INDEX "review_rating_idx" ON "review"("rating");
 -- CreateIndex
 CREATE UNIQUE INDEX "review_productId_userId_key" ON "review"("productId", "userId");
 
--- CreateIndex
-CREATE INDEX "Product_isActive_idx" ON "Product"("isActive");
+-- AddForeignKey
+ALTER TABLE "ProductContainer" ADD CONSTRAINT "ProductContainer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- CreateIndex
-CREATE INDEX "Product_containerId_idx" ON "Product"("containerId");
-
--- CreateIndex
-CREATE INDEX "Product_unidadId_idx" ON "Product"("unidadId");
-
--- CreateIndex
-CREATE INDEX "Product_marcaId_idx" ON "Product"("marcaId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Product_containerId_sku_key" ON "Product"("containerId", "sku");
-
--- CreateIndex
-CREATE INDEX "ProductContainer_userId_idx" ON "ProductContainer"("userId");
-
--- CreateIndex
-CREATE INDEX "User_email_idx" ON "User"("email");
+-- AddForeignKey
+ALTER TABLE "Product" ADD CONSTRAINT "Product_containerId_fkey" FOREIGN KEY ("containerId") REFERENCES "ProductContainer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Product" ADD CONSTRAINT "Product_unidadId_fkey" FOREIGN KEY ("unidadId") REFERENCES "unidad"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
