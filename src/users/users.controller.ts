@@ -15,10 +15,34 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 
+import { Public } from 'src/auth/decorators/public.decorator';
+
 @Controller('users')
 @ApiTags('Users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get current user profile' })
+  async getProfile(@Req() req: Request, @Res() response: Response) {
+    try {
+      // El usuario debe estar en req.user (agregado por JwtStrategy)
+      const user = await this.usersService.getProfile((req as any).user?.id);
+      return response.status(200).json({
+        status: 'Ok!',
+        message: 'User profile fetched',
+        result: user,
+      });
+    } catch (err) {
+      console.log(err);
+      response.statusMessage = err.response?.message || 'Error';
+      return response.status(err.status || 500).json({
+        status: err.response?.statusCode || 500,
+        message: err.response?.message || 'Error',
+      });
+    }
+  }
 
   @Get('/all')
   @UseGuards(JwtAuthGuard)

@@ -6,6 +6,22 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  async getProfile(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
   async getAllusers() {
     console.log('entro aca');
     return await this.prisma.user.findMany();

@@ -20,7 +20,7 @@ export class CartService {
 
   async getOrCreateCart(userId: number | null) {
     if (userId) {
-      let cart = await this.prisma.cart.findFirst({ where: { userId }, include: { items: true } });
+      let cart = await this.prisma.cart.findFirst({ where: { userId }, include: { items: { include: { product: true } } } });
       if (!cart) {
         await this.prisma.cart.create({ data: { userId } });
         cart = await this.prisma.cart.findFirst({ where: { userId }, include: { items: { include: { product: true } } } });
