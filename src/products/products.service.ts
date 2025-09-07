@@ -4,6 +4,34 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ProductContainerService } from 'src/product-container/product-container.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 
+const productFullInclude = {
+  _count: true, // cuenta de relaciones (reviews, etc.)
+  container: {
+    include: {
+      user: {
+        select: { id: true, email: true, username: true, role: true },
+      },
+    },
+  },
+  ProductImage: true,        // relación con las imágenes
+  ProductCategory: {         // relación con las categorías
+    include: {
+      category: true,        // se incluye la categoría asociada
+    },
+  },
+  unidad: true,              // unidad de medida (opcional)
+  marca: true,               // marca (opcional)
+  review: {
+    include: {
+      user: { select: { id: true, username: true } },
+    },
+  },
+} as const;
+
+
+const pages = (total: number, limit: number) =>
+  Math.max(1, Math.ceil(total / Math.max(1, limit)));
+
 @Injectable()
 export class ProductsService {
   constructor(
@@ -86,18 +114,19 @@ export class ProductsService {
   async getAllProducts(paginationDTO: PaginationDto) {
     const { limit = 10, offset = 0 } = paginationDTO;
 
-    const totalProducts = await this.prismaService.product.count();
-
-    const products = await this.prismaService.product.findMany({
-      skip: Number(offset),
-      take: Number(limit),
-    });
-
-    const totalPages = Math.ceil(totalProducts / limit);
+    const [totalProducts, products] = await this.prismaService.$transaction([
+      this.prismaService.product.count(),
+      this.prismaService.product.findMany({
+        skip: Number(offset),
+        take: Number(limit),
+        include: productFullInclude,
+        orderBy: { createdAt: 'desc' }, // ajusta el orden si prefieres
+      }),
+    ]);
 
     return {
       products,
-      totalPages,
+      totalPages: pages(totalProducts, limit),
       totalProducts,
     };
   }
@@ -105,47 +134,24 @@ export class ProductsService {
   async getAllProductsWithUserData(paginationDTO: PaginationDto) {
     const { limit = 10, offset = 0 } = paginationDTO;
 
-    const totalProducts = await this.prismaService.product.count({
-      where: {
-        container: {
-          user: {
-            role: 'SELLER',
-          },
-        },
-      },
-    });
+    const where = {
+      container: { user: { role: 'SELLER' as const } },
+    };
 
-    const products = await this.prismaService.product.findMany({
-      where: {
-        container: {
-          user: {
-            role: 'SELLER',
-          },
-        },
-      },
-      skip: Number(offset),
-      take: Number(limit),
-      include: {
-        container: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                username: true,
-                role: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const totalPages = Math.ceil(totalProducts / limit);
+    const [totalProducts, products] = await this.prismaService.$transaction([
+      this.prismaService.product.count({ where }),
+      this.prismaService.product.findMany({
+        where,
+        skip: Number(offset),
+        take: Number(limit),
+        include: productFullInclude,
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
 
     return {
       products,
-      totalPages,
+      totalPages: pages(totalProducts, limit),
       totalProducts,
     };
   }
@@ -153,29 +159,22 @@ export class ProductsService {
   async getAllProductsByUser(userId: number, paginationDTO: PaginationDto) {
     const { limit = 10, offset = 0 } = paginationDTO;
 
-    const totalProducts = await this.prismaService.product.count({
-      where: {
-        container: {
-          userId,
-        },
-      },
-    });
+    const where = { container: { userId } };
 
-    const products = await this.prismaService.product.findMany({
-      where: {
-        container: {
-          userId,
-        },
-      },
-      skip: Number(offset),
-      take: Number(limit),
-    });
-
-    const totalPages = Math.ceil(totalProducts / limit);
+    const [totalProducts, products] = await this.prismaService.$transaction([
+      this.prismaService.product.count({ where }),
+      this.prismaService.product.findMany({
+        where,
+        skip: Number(offset),
+        take: Number(limit),
+        include: productFullInclude,
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
 
     return {
       products,
-      totalPages,
+      totalPages: pages(totalProducts, limit),
       totalProducts,
     };
   }

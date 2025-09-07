@@ -1,66 +1,35 @@
-import {
-  IsArray,
-  IsInt,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsPositive,
-  IsString,
-  IsInt as IsIntField,
-  ValidateNested,
-  IsArray as IsArrayField,
-  IsObject,
-  IsBoolean,
-  Min
-} from 'class-validator';
-
 import { Type } from 'class-transformer';
-import { ProductImageDto } from './product-image.dto';
+import { IsArray, IsBoolean, IsInt, IsNumber, IsOptional, IsString, MaxLength, Min, ValidateNested } from 'class-validator';
+
+class ImageBase64Dto {
+  @IsString() base64!: string;
+  @IsOptional() @IsString() alt?: string;
+  @IsOptional() @IsInt() position?: number;
+}
 
 export class CreateProductDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
+  @IsString() name!: string;
+  @IsString() sku!: string;
 
-  @IsString()
-  sku: string;
+  @Type(() => Number) @IsNumber() quantity!: number;
+  @Type(() => Number) @IsNumber() price!: number;
 
-  @IsInt()
-  @IsNotEmpty()
-  quantity: number;
+  @IsOptional() @IsString() @MaxLength(2000)
+  description?: string;
 
-  @IsNumber()
-  @IsPositive()
-  price: number;
-  @IsOptional()
-  @IsInt()
-  containerId?: number;
+  @IsOptional() @IsInt() containerId?: number;
+  @IsOptional() @IsInt() unidadId?: number;
+  @IsOptional() @IsInt() marcaId?: number;
 
-  @IsOptional()
-  @IsInt()
-  unidadId?: number;
-
-  @IsOptional()
-  @IsInt()
-  marcaId?: number;
-
-  @IsOptional()
-  @IsArray()
-  @IsIntField({ each: true })
+  @IsOptional() @IsArray() @IsInt({ each: true })
   categoryIds?: number[];
 
-  @IsOptional()
-  @IsInt()
-  @Min(0)
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ImageBase64Dto)
+  images?: ImageBase64Dto[];
+
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0)
   minStock?: number;
 
-  @IsOptional()
-  @IsBoolean()
+  @IsOptional() @IsBoolean()
   isActive?: boolean;
-
-  @IsOptional()
-  @IsArrayField()
-  @ValidateNested({ each: true })
-  @Type(() => ProductImageDto)
-  images?: ProductImageDto[];
 }
