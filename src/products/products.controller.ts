@@ -130,19 +130,10 @@ export class ProductsController {
         message: 'ok',
         result: {
           products: [
-            {
-              id: 'product-id-1',
-              name: 'Sample Product 1',
-              price: 100,
-            },
-            {
-              id: 'product-id-2',
-              name: 'Sample Product 2',
-              price: 200,
-            },
+            { id: 'product-id-1', name: 'Sample Product 1', price: 100 },
           ],
           totalPages: 1,
-          totaProduct: 1000,
+          totalProducts: 1000,
         },
       },
     },
@@ -150,43 +141,41 @@ export class ProductsController {
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
     description: 'Validation failed for the provided input.',
-    schema: {
-      example: {
-        status: 'Error',
-        message: 'Validation failed',
-      },
-    },
+    schema: { example: { status: 'Error', message: 'Validation failed' } },
   })
   @ApiResponse({
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: 'An unexpected error occurred.',
     schema: {
-      example: {
-        status: 'Error',
-        message: 'An unexpected error occurred.',
-      },
+      example: { status: 'Error', message: 'An unexpected error occurred.' },
     },
   })
-  async getAllUserProducts(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Query() pagination: PaginationDto,
-  ) {
+  async getAllUserProducts(@Query() pagination: PaginationDto) {
     try {
       const result = await this.productsService.getAllProducts(pagination);
-
-      return res.status(HttpStatus.OK).json({
-        staus: 200,
+      // getAllProducts devuelve { products, totalPages, totalProducts } :contentReference[oaicite:1]{index=1}
+      return {
+        status: HttpStatus.OK,
         message: 'ok',
         result,
-      });
+      };
     } catch (err) {
-      console.log(err);
-      res.statusMessage = err.response?.message || 'Internal Server Error';
-      return res.status(err.status).json({
-        status: err.response.statusCode,
-        message: err.response.message,
-      });
+      const { HttpException, HttpStatus } = await import('@nestjs/common');
+      const status =
+        err instanceof HttpException
+          ? err.getStatus()
+          : Number((err as any)?.status ?? (err as any)?.statusCode) ||
+            HttpStatus.INTERNAL_SERVER_ERROR;
+
+      const resp = err instanceof HttpException ? err.getResponse() : null;
+      const message =
+        typeof resp === 'string'
+          ? resp
+          : ((resp as any)?.message ??
+            (err as any)?.message ??
+            'Internal Server Error');
+
+      throw new HttpException({ status, message }, status);
     }
   }
 
