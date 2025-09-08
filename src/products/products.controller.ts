@@ -27,7 +27,6 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Create product' })
   @ApiBody({
@@ -180,7 +179,6 @@ export class ProductsController {
   }
 
   @Get('/admin')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Get all products with user role equal to SELLER' })
@@ -273,7 +271,6 @@ export class ProductsController {
   }
 
   @Get('/user')
-  @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Get all products related to an userId' })
   @ApiResponse({

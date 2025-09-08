@@ -25,7 +25,7 @@ import { UpsertAddressDto } from './dto/addresses.dto';
 
 @ApiTags('Addresses')
 @Controller('addresses')
-@UseGuards(JwtAuthGuard)
+//@UseGuards(JwtAuthGuard)
 export class AddressController {
   constructor(private readonly addressService:AddressService ) {}
   @Get()

@@ -22,7 +22,7 @@ import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { CartService } from './cart.service';
 
-@UseGuards(JwtAuthGuard)
+//@UseGuards(JwtAuthGuard)
 @ApiTags('Cart')
 @Controller('cart')
 export class CartController {

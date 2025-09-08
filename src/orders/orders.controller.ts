@@ -8,7 +8,7 @@ import { Request, Response } from 'express';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Orders')
-@UseGuards(JwtAuthGuard)
+//@UseGuards(JwtAuthGuard)
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly service: OrdersService) {}
