@@ -17,6 +17,9 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 
 import { Public } from 'src/auth/decorators/public.decorator';
 
+import { Body, Patch } from '@nestjs/common';
+import { ApiBody } from '@nestjs/swagger';
+
 @Controller('users')
 @ApiTags('Users')
 export class UsersController {
@@ -27,12 +30,34 @@ export class UsersController {
   @ApiOperation({ summary: 'Get current user profile' })
   async getProfile(@Req() req: Request, @Res() response: Response) {
     try {
-      // El usuario debe estar en req.user (agregado por JwtStrategy)
       const user = await this.usersService.getProfile((req as any).user?.id);
       return response.status(200).json({
         status: 'Ok!',
         message: 'User profile fetched',
         result: user,
+      });
+    } catch (err) {
+      console.log(err);
+      response.statusMessage = err.response?.message || 'Error';
+      return response.status(err.status || 500).json({
+        status: err.response?.statusCode || 500,
+        message: err.response?.message || 'Error',
+      });
+    }
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiBody({ schema: { properties: { email: { type: 'string', example: 'nuevo@email.com' }, username: { type: 'string', example: 'nuevo_usuario' }, password: { type: 'string', example: 'nuevaClave123' }, celular: { type: 'string', example: '3001234567' } } } })
+  async updateProfile(@Req() req: Request, @Res() response: Response, @Body() body: any) {
+    try {
+      const userId = (req as any).user?.id;
+      const updated = await this.usersService.updateProfile(userId, body);
+      return response.status(200).json({
+        status: 'Ok!',
+        message: 'User profile updated',
+        result: updated,
       });
     } catch (err) {
       console.log(err);

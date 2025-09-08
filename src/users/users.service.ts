@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -13,6 +13,7 @@ export class UsersService {
         id: true,
         email: true,
         username: true,
+        phones: true,
         role: true,
         createdAt: true,
         updatedAt: true,
@@ -20,6 +21,29 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  async updateProfile(userId: number, data: { email?: string; username?: string; password?: string; celular?: string }) {
+    const updateData: any = {};
+    if (data.email) updateData.email = data.email;
+    if (data.username) updateData.username = data.username;
+    if (data.password) updateData.password = data.password; // Aquí deberías hashear la contraseña si es necesario
+    if (data.celular) updateData.celular = data.celular;
+    if (Object.keys(updateData).length === 0) throw new BadRequestException('No data to update');
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        phones: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    return updated;
   }
 
   async getAllusers() {
