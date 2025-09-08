@@ -326,28 +326,26 @@ export class ProductsController {
     @Req() req: Request,
     @Res() res: Response,
     @Query() pagination: PaginationDto,
+    @Query('phones') phones?: string,
   ) {
     const user = req.user as any;
-    const userId = user.id;
-
+    const userId = user?.id;
     try {
       const result = await this.productsService.getAllProductsByUser(
-        userId,
+        { userId, phones },
         pagination,
       );
-
       return res.status(HttpStatus.OK).json({
-        staus: 200,
+        status: 200,
         message: 'ok',
         result,
       });
     } catch (err) {
       console.log(err);
-
       res.statusMessage = err.response?.message || 'Internal Server Error';
-      return res.status(err.status).json({
-        status: err.response.statusCode,
-        message: err.response.message,
+      return res.status(err.status || 500).json({
+        status: err.response?.statusCode || 500,
+        message: err.response?.message || 'Error',
       });
     }
   }

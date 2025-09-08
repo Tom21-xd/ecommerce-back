@@ -28,9 +28,10 @@ export class UsersController {
   @Get('profile')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get current user profile' })
-  async getProfile(@Req() req: Request, @Res() response: Response) {
+  async getProfile(@Req() req: Request, @Res() response: Response, @Query('phones') phones?: string) {
     try {
-      const user = await this.usersService.getProfile((req as any).user?.id);
+      const userId = (req as any).user?.id;
+      const user = await this.usersService.getProfile({ userId, phones });
       return response.status(200).json({
         status: 'Ok!',
         message: 'User profile fetched',
@@ -49,11 +50,11 @@ export class UsersController {
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update current user profile' })
-  @ApiBody({ schema: { properties: { email: { type: 'string', example: 'nuevo@email.com' }, username: { type: 'string', example: 'nuevo_usuario' }, password: { type: 'string', example: 'nuevaClave123' }, celular: { type: 'string', example: '3001234567' } } } })
-  async updateProfile(@Req() req: Request, @Res() response: Response, @Body() body: any) {
+  @ApiBody({ schema: { properties: { email: { type: 'string', example: 'nuevo@email.com' }, username: { type: 'string', example: 'nuevo_usuario' }, password: { type: 'string', example: 'nuevaClave123' }, phones: { type: 'string', example: '3001234567' } } } })
+  async updateProfile(@Req() req: Request, @Res() response: Response, @Body() body: any, @Query('phones') phones?: string) {
     try {
       const userId = (req as any).user?.id;
-      const updated = await this.usersService.updateProfile(userId, body);
+      const updated = await this.usersService.updateProfile({ userId, phones }, body);
       return response.status(200).json({
         status: 'Ok!',
         message: 'User profile updated',

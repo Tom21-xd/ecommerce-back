@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, Req, Res, UseGuards, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, Req, Res, UseGuards, HttpStatus, Query } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -15,9 +15,9 @@ export class OrdersController {
 
   @Get('me')
   @ApiOperation({ summary: 'List my orders' })
-  async listMine(@Req() req: Request, @Res() res: Response) {
+  async listMine(@Req() req: Request, @Res() res: Response, @Query('phones') phones?: string) {
     const user = req.user as any;
-    const result = await this.service.listMine(user.id);
+    const result = await this.service.listMine({ userId: user?.id, phones });
     return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 

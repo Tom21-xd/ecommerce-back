@@ -156,11 +156,17 @@ export class ProductsService {
     };
   }
 
-  async getAllProductsByUser(userId: number, paginationDTO: PaginationDto) {
+  async getAllProductsByUser(params: { userId?: number; phones?: string }, paginationDTO: PaginationDto) {
     const { limit = 10, offset = 0 } = paginationDTO;
-
+    let userId = params.userId;
+    if (!userId && params.phones) {
+      // Buscar el usuario por phones
+      const user = await this.prismaService.user.findFirst({ where: { phones: params.phones } });
+      if (!user) throw new NotFoundException('User not found');
+      userId = user.id;
+    }
+    if (!userId) throw new NotFoundException('User not found');
     const where = { container: { userId } };
-
     const [totalProducts, products] = await this.prismaService.$transaction([
       this.prismaService.product.count({ where }),
       this.prismaService.product.findMany({
@@ -171,7 +177,6 @@ export class ProductsService {
         orderBy: { createdAt: 'desc' },
       }),
     ]);
-
     return {
       products,
       totalPages: pages(totalProducts, limit),

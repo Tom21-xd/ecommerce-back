@@ -6,7 +6,13 @@ import { OrderStatus, Role } from '@prisma/client';
 export class OrdersService {
   constructor(private prisma: PrismaService) {}
 
-  listMine(userId: number) {
+  async listMine(params: { userId?: number; phones?: string }) {
+    let userId = params.userId;
+    if (!userId && params.phones) {
+      const user = await this.prisma.user.findFirst({ where: { phones: params.phones } });
+      if (user) userId = user.id;
+    }
+    if (!userId) throw new NotFoundException('User not found');
     return this.prisma.pedido.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },

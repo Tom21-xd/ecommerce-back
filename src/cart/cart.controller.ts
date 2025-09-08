@@ -30,44 +30,44 @@ export class CartController {
 
   @Get()
   @ApiOperation({ summary: 'Get current cart' })
-  async getMyCart(@Req() req: Request, @Res() res: Response) {
+  async getMyCart(@Req() req: Request, @Res() res: Response, @Query('phones') phones?: string) {
     const user = req.user as any;
-    const result = await this.cartService.getOrCreateCart(user?.id ?? null);
+    const result = await this.cartService.getOrCreateCart({ userId: user?.id ?? null, phones });
     return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   @Post('items')
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Add item to cart' })
-  async addItem(@Req() req: Request, @Res() res: Response, @Body() dto: AddItemDto) {
+  async addItem(@Req() req: Request, @Res() res: Response, @Body() dto: AddItemDto, @Query('phones') phones?: string) {
     const user = req.user as any;
-    const result = await this.cartService.addItem(user?.id ?? null, dto);
+    const result = await this.cartService.addItem({ userId: user?.id ?? null, phones }, dto);
     return res.status(HttpStatus.CREATED).json({ status: 201, message: 'added', result });
   }
 
   @Patch('items/:productId')
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Update item qty (0 to remove)' })
-  async updateItem(@Req() req: Request, @Res() res: Response, @Param('productId') productId: string, @Body() dto: UpdateItemDto) {
+  async updateItem(@Req() req: Request, @Res() res: Response, @Param('productId') productId: string, @Body() dto: UpdateItemDto, @Query('phones') phones?: string) {
     const user = req.user as any;
-    const result = await this.cartService.updateItem(user?.id ?? null, Number(productId), dto.qty);
+    const result = await this.cartService.updateItem({ userId: user?.id ?? null, phones }, Number(productId), dto.qty);
     return res.status(HttpStatus.OK).json({ status: 200, message: 'updated', result });
   }
 
   @Delete('items/:productId')
   @ApiOperation({ summary: 'Remove item from cart' })
-  async removeItem(@Req() req: Request, @Res() res: Response, @Param('productId') productId: string) {
+  async removeItem(@Req() req: Request, @Res() res: Response, @Param('productId') productId: string, @Query('phones') phones?: string) {
     const user = req.user as any;
-    const result = await this.cartService.removeItem(user?.id ?? null, Number(productId));
+    const result = await this.cartService.removeItem({ userId: user?.id ?? null, phones }, Number(productId));
     return res.status(HttpStatus.OK).json({ status: 200, message: 'removed', result });
   }
 
   @Post('checkout')
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Checkout -> creates pedido + detalles + addresses, empties cart' })
-  async checkout(@Req() req: Request, @Res() res: Response, @Body() dto: CheckoutDto) {
+  async checkout(@Req() req: Request, @Res() res: Response, @Body() dto: CheckoutDto, @Query('phones') phones?: string) {
     const user = req.user as any;
-    const result = await this.cartService.checkout(user.id, dto);
+    const result = await this.cartService.checkout({ userId: user?.id ?? null, phones }, dto);
     return res.status(HttpStatus.CREATED).json({ status: 201, message: 'order created', result });
   }
 }

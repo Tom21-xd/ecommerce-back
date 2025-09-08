@@ -18,7 +18,12 @@ export class CartService {
     return p;
   }
 
-  async getOrCreateCart(userId: number | null) {
+  async getOrCreateCart(params: { userId?: number | null; phones?: string }) {
+    let userId = params.userId;
+    if (!userId && params.phones) {
+      const user = await this.prisma.user.findFirst({ where: { phones: params.phones } });
+      if (user) userId = user.id;
+    }
     if (userId) {
       let cart = await this.prisma.cart.findFirst({ where: { userId }, include: { items: { include: { product: true } } } });
       if (!cart) {
@@ -32,7 +37,7 @@ export class CartService {
     return this.prisma.cart.findUnique({ where: { id: cart.id }, include: { items: { include: { product: true } } } });
   }
 
-  async addItem(userId: number | null, dto: AddItemDto) {
+  async addItem(params: { userId?: number | null; phones?: string }, dto: AddItemDto) {
     const { productId, qty } = dto;
     const product = await this.findProduct(productId);
 
@@ -40,7 +45,7 @@ export class CartService {
     if (qty > product.quantity) throw new BadRequestException('Insufficient stock');
 
     // get/create cart
-    const cart = await this.getOrCreateCart(userId);
+  const cart = await this.getOrCreateCart(params);
 
     // upsert item
     const existing = await this.prisma.cart_item.findUnique({ where: { cartId_productId: { cartId: cart.id, productId } } });
@@ -57,8 +62,8 @@ export class CartService {
     });
   }
 
-  async updateItem(userId: number | null, productId: number, qty: number) {
-    const cart = await this.getOrCreateCart(userId);
+  async updateItem(params: { userId?: number | null; phones?: string }, productId: number, qty: number) {
+    const cart = await this.getOrCreateCart(params);
     const item = await this.prisma.cart_item.findUnique({ where: { cartId_productId: { cartId: cart.id, productId } } });
     if (!item) throw new NotFoundException('Item not found');
 
@@ -72,8 +77,8 @@ export class CartService {
     return this.prisma.cart_item.update({ where: { id: item.id }, data: { qty } });
   }
 
-  async removeItem(userId: number | null, productId: number) {
-    const cart = await this.getOrCreateCart(userId);
+  async removeItem(params: { userId?: number | null; phones?: string }, productId: number) {
+    const cart = await this.getOrCreateCart(params);
     const item = await this.prisma.cart_item.findUnique({ where: { cartId_productId: { cartId: cart.id, productId } } });
     if (!item) return { deleted: true };
     await this.prisma.cart_item.delete({ where: { id: item.id } });
@@ -90,7 +95,13 @@ export class CartService {
    * - Descuenta stock
    * - Limpia carrito
    */
-  async checkout(userId: number, dto: CheckoutDto) {
+  async checkout(params: { userId?: number | null; phones?: string }, dto: CheckoutDto) {
+    let userId = params.userId;
+    if (!userId && params.phones) {
+      const user = await this.prisma.user.findFirst({ where: { phones: params.phones } });
+      if (user) userId = user.id;
+    }
+    if (!userId) throw new NotFoundException('User not found');
     const cart = await this.prisma.cart.findFirst({ where: { userId }, include: { items: { include: { product: true } } } });
     if (!cart || cart.items.length === 0) throw new BadRequestException('Cart is empty');
 
