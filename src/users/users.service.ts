@@ -23,12 +23,12 @@ export class UsersService {
     return user;
   }
 
-  async updateProfile(userId: number, data: { email?: string; username?: string; password?: string; celular?: string }) {
+  async updateProfile(userId: number, data: { email?: string; username?: string; password?: string; phones?: string }) {
     const updateData: any = {};
     if (data.email) updateData.email = data.email;
     if (data.username) updateData.username = data.username;
     if (data.password) updateData.password = data.password; // Aquí deberías hashear la contraseña si es necesario
-    if (data.celular) updateData.celular = data.celular;
+    if (data.phones) updateData.phones = data.phones;
     if (Object.keys(updateData).length === 0) throw new BadRequestException('No data to update');
     const updated = await this.prisma.user.update({
       where: { id: userId },
