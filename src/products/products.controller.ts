@@ -21,6 +21,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('products')
 @ApiTags('Products')
 export class ProductsController {

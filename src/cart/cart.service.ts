@@ -32,7 +32,6 @@ export class CartService {
       }
       return cart;
     }
-    // Anónimo: crea carrito sin user
     const cart = await this.prisma.cart.create({ data: {} });
     return this.prisma.cart.findUnique({ where: { id: cart.id }, include: { items: { include: { product: true } } } });
   }
