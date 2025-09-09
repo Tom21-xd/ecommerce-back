@@ -15,6 +15,7 @@ import {
   Param,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { Request, Response } from 'express';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AddItemDto } from './dto/add-item.dto';
@@ -27,6 +28,66 @@ import { CartService } from './cart.service';
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
+
+  @Get('by-phone')
+  @Public()
+  @ApiOperation({ summary: 'Get cart by phone number (public endpoint)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cart retrieved successfully',
+    schema: {
+      example: {
+        status: 200,
+        message: 'ok',
+        result: {
+          id: 1,
+          userId: 1,
+          items: [
+            {
+              id: 1,
+              productId: 1,
+              qty: 2,
+              priceAtAdd: 100.00,
+              product: {
+                id: 1,
+                name: 'Product Name',
+                sku: 'SKU123',
+                price: 100.00
+              }
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found with provided phone number',
+    schema: {
+      example: {
+        status: 404,
+        message: 'User not found'
+      }
+    }
+  })
+  async getCartByPhone(@Query('phone') phone: string, @Res() res: Response) {
+    if (!phone) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ 
+        status: 400, 
+        message: 'Phone number is required' 
+      });
+    }
+
+    try {
+      const result = await this.cartService.getOrCreateCart({ phones: phone });
+      return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
+    } catch (error) {
+      return res.status(HttpStatus.NOT_FOUND).json({ 
+        status: 404, 
+        message: 'User not found with provided phone number' 
+      });
+    }
+  }
 
   @Get()
   @ApiOperation({ summary: 'Get current cart' })

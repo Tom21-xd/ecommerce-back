@@ -28,6 +28,7 @@ export class AuthService {
       email: user.email,
       username: user.username,
       role: user.role,
+      phones: user.phones,
     };
   }
 
@@ -53,6 +54,7 @@ export class AuthService {
       username: searchUser.username,
       email: searchUser.email,
       role: searchUser.role,
+      phones: searchUser.phones,
     };
 
     return {
@@ -61,6 +63,7 @@ export class AuthService {
           id: searchUser.id,
           role: searchUser.role,
           email: searchUser.email,
+          phones: searchUser.phones,
         },
       }),
       user: returnUser,
@@ -93,6 +96,7 @@ export class AuthService {
       username: user.username,
       email: user.email,
       role: user.role,
+      phones: user.phones,
     };
 
     return {
@@ -101,6 +105,7 @@ export class AuthService {
           id: user.id,
           role: user.role,
           email: user.email,
+          phones: user.phones,
         },
       }),
       user: returnUser,
