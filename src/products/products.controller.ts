@@ -21,13 +21,13 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('products')
 @ApiTags('Products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Create product' })
   @ApiBody({
@@ -272,6 +272,7 @@ export class ProductsController {
   }
 
   @Get('/user')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Get all products related to an userId' })
   @ApiResponse({
