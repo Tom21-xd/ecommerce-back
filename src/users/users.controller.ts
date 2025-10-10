@@ -134,12 +134,10 @@ export class UsersController {
           message: 'User not found',
         });
       }
-      // Remove sensitive data
-      const { password, ...userWithoutPassword } = result;
       return response.status(200).json({
         status: 'Ok!',
         message: 'Successfully fetch user!',
-        result: userWithoutPassword,
+        result: result,
       });
     } catch (err) {
       console.log(err);
