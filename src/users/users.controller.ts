@@ -118,6 +118,39 @@ export class UsersController {
     }
   }
 
+  @Get(':id')
+  @Public()
+  @ApiOperation({ summary: 'Get user by id (public for seller profile)' })
+  async getUserById(
+    @Req() req: Request,
+    @Res() response: Response,
+    @Param('id') id: string,
+  ) {
+    try {
+      const result = await this.usersService.findById(+id);
+      if (!result) {
+        return response.status(404).json({
+          status: 'Error',
+          message: 'User not found',
+        });
+      }
+      // Remove sensitive data
+      const { password, ...userWithoutPassword } = result;
+      return response.status(200).json({
+        status: 'Ok!',
+        message: 'Successfully fetch user!',
+        result: userWithoutPassword,
+      });
+    } catch (err) {
+      console.log(err);
+      response.statusMessage = err.response?.message || 'Error';
+      return response.status(err.status || 500).json({
+        status: err.response?.statusCode || 500,
+        message: err.response?.message || 'Error',
+      });
+    }
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @Roles(Role.ADMIN)

@@ -8,10 +8,22 @@ export class CatalogService {
   // unidad
   createUnidad(nombre: string) { return this.prisma.unidad.create({ data: { nombre } }); }
   listUnidad() { return this.prisma.unidad.findMany({ orderBy: { nombre: 'asc' } }); }
+  async deleteUnidad(id: number) {
+    const unidad = await this.prisma.unidad.findUnique({ where: { id } });
+    if (!unidad) throw new NotFoundException('Unidad not found');
+    await this.prisma.unidad.delete({ where: { id } });
+    return { deleted: true, id };
+  }
 
   // marca
   createMarca(nombre: string) { return this.prisma.marca.create({ data: { nombre } }); }
   listMarca() { return this.prisma.marca.findMany({ orderBy: { nombre: 'asc' } }); }
+  async deleteMarca(id: number) {
+    const marca = await this.prisma.marca.findUnique({ where: { id } });
+    if (!marca) throw new NotFoundException('Marca not found');
+    await this.prisma.marca.delete({ where: { id } });
+    return { deleted: true, id };
+  }
 
   // category (padre-hijo)
   createCategory(data: { name: string; slug: string; parentId?: number }) {
@@ -19,6 +31,12 @@ export class CatalogService {
   }
   listCategories() {
     return this.prisma.category.findMany({ include: { children: true } });
+  }
+  async deleteCategory(id: number) {
+    const category = await this.prisma.category.findUnique({ where: { id } });
+    if (!category) throw new NotFoundException('Category not found');
+    await this.prisma.category.delete({ where: { id } });
+    return { deleted: true, id };
   }
 
   // product images

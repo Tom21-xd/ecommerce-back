@@ -10,6 +10,9 @@ import {
   HttpStatus,
   Get,
   Query,
+  Patch,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -418,6 +421,117 @@ export class ProductsController {
       return res.status(err.status).json({
         status: err.response.statusCode,
         message: err.response.message,
+      });
+    }
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get product by ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Successfully retrieved product.',
+    schema: {
+      example: {
+        status: 200,
+        message: 'ok',
+        result: {
+          id: 1,
+          name: 'Sample Product',
+          price: 100,
+          description: 'Product description',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Product not found.',
+    schema: {
+      example: {
+        status: 'Error',
+        message: 'Product not found',
+      },
+    },
+  })
+  async getProductById(
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.productsService.getById(Number(id));
+      return res.status(HttpStatus.OK).json({
+        status: 200,
+        message: 'ok',
+        result,
+      });
+    } catch (err) {
+      const HttpException = require('@nestjs/common').HttpException;
+      const status = err instanceof HttpException ? err.getStatus() : 500;
+      const message = err?.message || 'Internal Server Error';
+      return res.status(status).json({
+        status,
+        message,
+      });
+    }
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new ValidationPipe())
+  @ApiOperation({ summary: 'Update product' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Product updated successfully.',
+  })
+  async updateProduct(
+    @Param('id') id: string,
+    @Body() updateProductDto: Partial<CreateProductDto>,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.productsService.update(Number(id), updateProductDto);
+      return res.status(HttpStatus.OK).json({
+        status: 200,
+        message: 'Product updated successfully',
+        result,
+      });
+    } catch (err) {
+      const HttpException = require('@nestjs/common').HttpException;
+      const status = err instanceof HttpException ? err.getStatus() : 500;
+      const message = err?.message || 'Internal Server Error';
+      return res.status(status).json({
+        status,
+        message,
+      });
+    }
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SELLER)
+  @ApiOperation({ summary: 'Delete product' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Product deleted successfully.',
+  })
+  async deleteProduct(
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.productsService.delete(Number(id));
+      return res.status(HttpStatus.OK).json({
+        status: 200,
+        message: 'Product deleted successfully',
+        result,
+      });
+    } catch (err) {
+      const HttpException = require('@nestjs/common').HttpException;
+      const status = err instanceof HttpException ? err.getStatus() : 500;
+      const message = err?.message || 'Internal Server Error';
+      return res.status(status).json({
+        status,
+        message,
       });
     }
   }

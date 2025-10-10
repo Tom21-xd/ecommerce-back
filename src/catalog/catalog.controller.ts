@@ -1,4 +1,4 @@
-import { Controller, UseGuards, Post, Get, Body, Query, Req, Res, HttpStatus } from '@nestjs/common';
+import { Controller, UseGuards, Post, Get, Body, Query, Req, Res, HttpStatus, Delete, Param } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CatalogService } from './catalog.service';
 import { Request, Response } from 'express';
@@ -83,5 +83,29 @@ export class CatalogController {
   async listReviews(@Query('productId') productId: string, @Res() res: Response) {
     const result = await this.service.listReviews(Number(productId));
     return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
+  }
+
+  @Delete('unidad/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete unidad' })
+  async deleteUnidad(@Param('id') id: string, @Res() res: Response) {
+    const result = await this.service.deleteUnidad(Number(id));
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'deleted', result });
+  }
+
+  @Delete('marca/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete marca' })
+  async deleteMarca(@Param('id') id: string, @Res() res: Response) {
+    const result = await this.service.deleteMarca(Number(id));
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'deleted', result });
+  }
+
+  @Delete('category/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete category' })
+  async deleteCategory(@Param('id') id: string, @Res() res: Response) {
+    const result = await this.service.deleteCategory(Number(id));
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'deleted', result });
   }
 }

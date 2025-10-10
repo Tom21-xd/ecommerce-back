@@ -131,4 +131,223 @@ export class CartController {
     const result = await this.cartService.checkout({ userId: user?.id ?? null, phones }, dto);
     return res.status(HttpStatus.CREATED).json({ status: 201, message: 'order created', result });
   }
+
+  // ========== PUBLIC ENDPOINTS (NO JWT REQUIRED) ==========
+
+  @Post('items/public')
+  @Public()
+  @UsePipes(new ValidationPipe())
+  @ApiOperation({ summary: 'Add item to cart by phone number (public endpoint)' })
+  @ApiResponse({
+    status: 201,
+    description: 'Item added to cart successfully',
+    schema: {
+      example: {
+        status: 201,
+        message: 'added',
+        result: {
+          id: 1,
+          userId: 1,
+          items: [
+            {
+              id: 1,
+              productId: 1,
+              qty: 2,
+              priceAtAdd: 100.00,
+              product: {
+                id: 1,
+                name: 'Product Name',
+                sku: 'SKU123',
+                price: 100.00
+              }
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Phone number is required or validation failed',
+    schema: {
+      example: {
+        status: 400,
+        message: 'Phone number is required'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found with provided phone number',
+    schema: {
+      example: {
+        status: 404,
+        message: 'User not found with provided phone number'
+      }
+    }
+  })
+  async addItemPublic(@Res() res: Response, @Body() dto: AddItemDto, @Query('phone') phone: string) {
+    if (!phone) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ 
+        status: 400, 
+        message: 'Phone number is required' 
+      });
+    }
+
+    try {
+      const result = await this.cartService.addItem({ phones: phone }, dto);
+      return res.status(HttpStatus.CREATED).json({ status: 201, message: 'added', result });
+    } catch (error) {
+      if (error.message === 'User not found with provided phone number') {
+        return res.status(HttpStatus.NOT_FOUND).json({ 
+          status: 404, 
+          message: 'User not found with provided phone number' 
+        });
+      }
+      return res.status(HttpStatus.BAD_REQUEST).json({ 
+        status: 400, 
+        message: error.message || 'Bad request' 
+      });
+    }
+  }
+
+  @Patch('items/:productId/public')
+  @Public()
+  @UsePipes(new ValidationPipe())
+  @ApiOperation({ summary: 'Update item qty by phone number (public endpoint)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Item updated successfully',
+    schema: {
+      example: {
+        status: 200,
+        message: 'updated',
+        result: {
+          id: 1,
+          userId: 1,
+          items: [
+            {
+              id: 1,
+              productId: 1,
+              qty: 3,
+              priceAtAdd: 100.00,
+              product: {
+                id: 1,
+                name: 'Product Name',
+                sku: 'SKU123',
+                price: 100.00
+              }
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Phone number is required or validation failed',
+    schema: {
+      example: {
+        status: 400,
+        message: 'Phone number is required'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found with provided phone number',
+    schema: {
+      example: {
+        status: 404,
+        message: 'User not found with provided phone number'
+      }
+    }
+  })
+  async updateItemPublic(@Res() res: Response, @Param('productId') productId: string, @Body() dto: UpdateItemDto, @Query('phone') phone: string) {
+    if (!phone) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ 
+        status: 400, 
+        message: 'Phone number is required' 
+      });
+    }
+
+    try {
+      const result = await this.cartService.updateItem({ phones: phone }, Number(productId), dto.qty);
+      return res.status(HttpStatus.OK).json({ status: 200, message: 'updated', result });
+    } catch (error) {
+      if (error.message === 'User not found with provided phone number') {
+        return res.status(HttpStatus.NOT_FOUND).json({ 
+          status: 404, 
+          message: 'User not found with provided phone number' 
+        });
+      }
+      return res.status(HttpStatus.BAD_REQUEST).json({ 
+        status: 400, 
+        message: error.message || 'Bad request' 
+      });
+    }
+  }
+
+  @Delete('items/:productId/public')
+  @Public()
+  @ApiOperation({ summary: 'Remove item from cart by phone number (public endpoint)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Item removed successfully',
+    schema: {
+      example: {
+        status: 200,
+        message: 'removed',
+        result: {
+          id: 1,
+          userId: 1,
+          items: []
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Phone number is required',
+    schema: {
+      example: {
+        status: 400,
+        message: 'Phone number is required'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found with provided phone number',
+    schema: {
+      example: {
+        status: 404,
+        message: 'User not found with provided phone number'
+      }
+    }
+  })
+  async removeItemPublic(@Res() res: Response, @Param('productId') productId: string, @Query('phone') phone: string) {
+    if (!phone) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ 
+        status: 400, 
+        message: 'Phone number is required' 
+      });
+    }
+
+    try {
+      const result = await this.cartService.removeItem({ phones: phone }, Number(productId));
+      return res.status(HttpStatus.OK).json({ status: 200, message: 'removed', result });
+    } catch (error) {
+      if (error.message === 'User not found with provided phone number') {
+        return res.status(HttpStatus.NOT_FOUND).json({ 
+          status: 404, 
+          message: 'User not found with provided phone number' 
+        });
+      }
+      return res.status(HttpStatus.BAD_REQUEST).json({ 
+        status: 400, 
+        message: error.message || 'Bad request' 
+      });
+    }
+  }
 }
