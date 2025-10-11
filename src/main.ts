@@ -24,6 +24,6 @@ async function bootstrap() {
   app.use(json({ limit: '15mb' }));
   app.use(urlencoded({ extended: true, limit: '15mb' }));
 
-  await app.listen(process.env.PORT || 4000);
+  await app.listen(4000);
 }
 bootstrap();
