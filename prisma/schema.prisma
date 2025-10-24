@@ -4,23 +4,24 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://udlaecommerce_user:udlaecommerce_pass@172.27.19.216:5432/udlaecommerce"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id         Int                @id @default(autoincrement())
-  email      String             @unique
-  password   String
-  username   String
-  phones     String? // Nuevo campo para número de celular
-  role       Role
-  createdAt  DateTime           @default(now()) @map("created_at")
-  updatedAt  DateTime           @default(now()) @updatedAt @map("updated_at")
-  containers ProductContainer[]
-  pedido     pedido[]
-  Address    Address[]
-  cart       cart[]
-  review     review[]
+  id           Int                @id @default(autoincrement())
+  email        String             @unique
+  password     String
+  username     String
+  phones       String? // Nuevo campo para número de celular
+  role         Role
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @default(now()) @updatedAt @map("updated_at")
+  containers   ProductContainer[]
+  pedido       pedido[]
+  Address      Address[]
+  cart         cart[]
+  review       review[]
+  epaycoConfig EpaycoConfig?
 
   @@index([email])
 }
@@ -33,6 +34,20 @@ model ProductContainer {
   userId    Int
   user      User      @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   products  Product[]
+
+  @@index([userId])
+}
+
+model EpaycoConfig {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  publicKey  String // Token público de ePayco del vendedor
+  privateKey String? // Token privado (opcional, encriptado)
+  isTestMode Boolean  @default(true)
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([userId])
 }
@@ -170,19 +185,22 @@ model shipment {
 }
 
 model payment {
-  id          Int           @id @default(autoincrement())
-  pedidoId    Int
-  pedido      pedido        @relation(fields: [pedidoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  method      PaymentMethod @default(TRANSFER)
-  status      PaymentStatus @default(PENDING)
-  amount      Decimal       @db.Decimal(12, 2)
-  currency    String        @default("COP")
-  provider    String?
-  providerRef String?
-  evidenceUrl String?
-  createdAt   DateTime      @default(now())
+  id             Int           @id @default(autoincrement())
+  pedidoId       Int
+  pedido         pedido        @relation(fields: [pedidoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  method         PaymentMethod @default(TRANSFER)
+  status         PaymentStatus @default(PENDING)
+  amount         Decimal       @db.Decimal(12, 2)
+  currency       String        @default("COP")
+  provider       String?
+  providerRef    String? // Referencia de transacción de ePayco
+  evidenceUrl    String?
+  containerId    Int? // ID del vendedor que recibe el pago
+  epaycoResponse String? // Respuesta completa de ePayco en JSON
+  createdAt      DateTime      @default(now())
 
   @@index([pedidoId, status])
+  @@index([containerId])
 }
 
 model Category {

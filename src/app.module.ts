@@ -10,6 +10,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { ShipmentsModule } from './shipments/shipments.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { AddressModule } from './address/address.module';
+import { EpaycoConfigModule } from './epayco-config/epayco-config.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AddressModule } from './address/address.module';
     PaymentsModule,
     ShipmentsModule,
     CatalogModule,
+    EpaycoConfigModule,
   ],
   providers: [AppService],
 })

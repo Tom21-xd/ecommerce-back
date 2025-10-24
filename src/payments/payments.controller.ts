@@ -5,9 +5,11 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { PaymentsService } from './payments.service';
 import { Response } from 'express';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { CreatePaymentEpaycoDto } from './dto/create-payment-epayco.dto';
 
 @ApiTags('Payments')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('payments')
 export class PaymentsController {
@@ -25,6 +27,33 @@ export class PaymentsController {
   async add(@Param('pedidoId') pedidoId: string, @Body() body: { amount: number; method?: PaymentMethod; provider?: string; providerRef?: string; evidenceUrl?: string }, @Res() res: Response) {
     const result = await this.service.addEvidence(Number(pedidoId), body);
     return res.status(HttpStatus.CREATED).json({ status: 201, message: 'created', result });
+  }
+
+  @Post('epayco/generate-button')
+  @ApiOperation({
+    summary: 'Generar datos del botón de pago ePayco por vendedor',
+    description: 'Genera los datos necesarios para renderizar el botón de pago de ePayco con la configuración del vendedor especificado'
+  })
+  async generateEpaycoButton(@Body() dto: CreatePaymentEpaycoDto, @Res() res: Response) {
+    const result = await this.service.generateEpaycoButtonData(dto);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
+  }
+
+  @Post('webhook/epayco')
+  @ApiOperation({
+    summary: 'Webhook de confirmación de ePayco',
+    description: 'Endpoint para recibir confirmaciones de pago desde ePayco'
+  })
+  async epaycoWebhook(@Body() body: any, @Res() res: Response) {
+    try {
+      const result = await this.service.processEpaycoWebhook(body);
+      return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
+    } catch (error) {
+      return res.status(HttpStatus.BAD_REQUEST).json({
+        status: 400,
+        message: error.message
+      });
+    }
   }
 
   @Patch(':id/status')

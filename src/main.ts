@@ -8,9 +8,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
-    .setTitle('Marketplace')
+    .setTitle('Tienda Verde')
     .setDescription(
-      'Proyecto de Ecommerce encaminado a la asignatura de Desarrollo de Redes II',
+      'Marketplace ecológico con integración de pagos por vendedor usando ePayco',
     )
     .setVersion('1.0')
     .addBearerAuth()
