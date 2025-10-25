@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PaymentMethod, PaymentStatus } from '@prisma/client';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EpaycoConfigService } from '../epayco-config/epayco-config.service';
 import { CreatePaymentEpaycoDto } from './dto/create-payment-epayco.dto';
@@ -16,7 +20,16 @@ export class PaymentsService {
     return this.prisma.payment.findMany({ where: { pedidoId } });
   }
 
-  async addEvidence(pedidoId: number, body: { amount: number; method?: PaymentMethod; provider?: string; providerRef?: string; evidenceUrl?: string }) {
+  async addEvidence(
+    pedidoId: number,
+    body: {
+      amount: number;
+      method?: PaymentMethod;
+      provider?: string;
+      providerRef?: string;
+      evidenceUrl?: string;
+    },
+  ) {
     return this.prisma.payment.create({
       data: {
         pedidoId,
@@ -36,13 +49,9 @@ export class PaymentsService {
     return this.prisma.payment.update({ where: { id }, data: { status } });
   }
 
-  /**
-   * Genera los datos necesarios para el botón de pago de ePayco
-   * @param dto Datos del pago a crear
-   * @returns Datos del botón de ePayco para renderizar en el frontend
-   */
-  async generateEpaycoButtonData(dto: CreatePaymentEpaycoDto): Promise<EpaycoButtonDataDto> {
-    // Verificar que el pedido existe
+  async generateEpaycoButtonData(
+    dto: CreatePaymentEpaycoDto,
+  ): Promise<EpaycoButtonDataDto> {
     const pedido = await this.prisma.pedido.findUnique({
       where: { id: dto.pedidoId },
       include: {
@@ -52,7 +61,13 @@ export class PaymentsService {
               include: {
                 container: {
                   include: {
-                    user: true,
+                    user: {
+                      select: {
+                        id: true,
+                        username: true,
+                        email: true,
+                      },
+                    },
                   },
                 },
               },
@@ -66,7 +81,6 @@ export class PaymentsService {
       throw new NotFoundException('Pedido no encontrado');
     }
 
-    // Verificar que el vendedor existe
     const seller = await this.prisma.user.findUnique({
       where: { id: dto.sellerId },
     });
@@ -75,7 +89,15 @@ export class PaymentsService {
       throw new NotFoundException('Vendedor no encontrado');
     }
 
-    // Obtener la configuración de ePayco del vendedor
+    const hasDifferentSeller = pedido.pedido_producto.some(
+      (detalle) => detalle.producto?.container?.userId !== dto.sellerId,
+    );
+    if (hasDifferentSeller) {
+      throw new BadRequestException(
+        'El pedido contiene productos de otro vendedor',
+      );
+    }
+
     let epaycoConfig;
     try {
       epaycoConfig = await this.epaycoConfigService.findByUserId(dto.sellerId);
@@ -87,15 +109,16 @@ export class PaymentsService {
 
     if (!epaycoConfig.isActive) {
       throw new BadRequestException(
-        'La configuración de ePayco del vendedor está desactivada',
+        'La configuraci��n de ePayco del vendedor est�� desactivada',
       );
     }
 
-    // Crear un registro de pago pendiente
+    const amount = dto.amount ?? Number(pedido.precio_total);
+
     const payment = await this.prisma.payment.create({
       data: {
         pedidoId: dto.pedidoId,
-        amount: dto.amount,
+        amount,
         method: PaymentMethod.GATEWAY,
         status: PaymentStatus.PENDING,
         provider: 'EPAYCO',
@@ -104,35 +127,41 @@ export class PaymentsService {
       },
     });
 
-    // Generar datos del botón de ePayco
+    const apiUrl = process.env.API_URL || 'http://localhost:4000';
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      process.env.APP_URL ||
+      'http://localhost:3000';
+    const externalRef = dto.externalRef || `PAYMENT-${payment.id}`;
+
     const buttonData: EpaycoButtonDataDto = {
       publicKey: epaycoConfig.publicKey,
-      amount: dto.amount,
+      amount,
       tax: dto.tax || 0,
       taxIco: dto.taxIco || 0,
-      taxBase: dto.taxBase || dto.amount,
+      taxBase: dto.taxBase || amount,
       name: `Pedido #${dto.pedidoId}`,
       description: dto.description,
       currency: 'COP',
       country: 'CO',
       test: epaycoConfig.isTestMode,
-      externalRef: dto.externalRef || `PAYMENT-${payment.id}`,
-      confirmationUrl: `${process.env.API_URL || 'http://localhost:4000'}/payments/webhook/epayco`,
+      externalRef,
+      confirmationUrl: `${apiUrl}/payments/webhook/epayco`,
+      responseUrl: `${frontendUrl}/orders/${dto.pedidoId}`,
     };
 
     return buttonData;
   }
 
-  /**
-   * Procesa la respuesta del webhook de ePayco
-   * @param response Respuesta de ePayco
-   */
   async processEpaycoWebhook(response: any) {
-    // Buscar el pago por la referencia externa
-    const externalRef = response.x_extra1 || response.x_ref_payco;
-
-    // Extraer el ID del pago de la referencia
-    const paymentId = parseInt(externalRef.split('-')[1]);
+    const externalRef =
+      response?.x_extra1 || response?.x_ref_payco || response?.x_id_invoice;
+    const paymentId = this.extractPaymentId(externalRef);
+    if (!paymentId) {
+      throw new BadRequestException(
+        'No se pudo determinar el pago desde la confirmaci��n de ePayco',
+      );
+    }
 
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
@@ -142,50 +171,44 @@ export class PaymentsService {
       throw new NotFoundException('Pago no encontrado');
     }
 
-    // Actualizar el estado del pago según la respuesta de ePayco
-    const status = this.mapEpaycoStatus(response.x_cod_response);
+    const status = this.mapEpaycoStatus(String(response?.x_cod_response));
 
-    await this.prisma.payment.update({
+    const updatedPayment = await this.prisma.payment.update({
       where: { id: payment.id },
       data: {
         status,
-        providerRef: response.x_transaction_id || response.x_ref_payco,
+        providerRef: response?.x_transaction_id || response?.x_ref_payco,
         epaycoResponse: JSON.stringify(response),
       },
     });
 
-    // Si el pago fue exitoso, actualizar el estado del pedido
     if (status === PaymentStatus.CONFIRMED) {
       await this.prisma.pedido.update({
         where: { id: payment.pedidoId },
-        data: { status: 'PAID' },
+        data: { status: OrderStatus.PAID },
       });
     }
 
-    return { success: true, payment };
+    return { success: true, payment: updatedPayment };
   }
 
-  /**
-   * Mapea el código de respuesta de ePayco a un estado de pago
-   */
   private mapEpaycoStatus(codResponse: string): PaymentStatus {
-    // Códigos de respuesta de ePayco:
-    // 1 = Transacción aprobada
-    // 2 = Transacción rechazada
-    // 3 = Transacción pendiente
-    // 4 = Transacción fallida
-
     switch (codResponse) {
       case '1':
-      case '3': // Aceptada
         return PaymentStatus.CONFIRMED;
       case '2':
-      case '4': // Rechazada
+      case '4':
         return PaymentStatus.FAILED;
-      case '3': // Pendiente
-        return PaymentStatus.PENDING;
       default:
         return PaymentStatus.PENDING;
     }
+  }
+
+  private extractPaymentId(ref?: string): number | null {
+    if (!ref) return null;
+    const raw = String(ref);
+    const candidate = raw.includes('-') ? raw.split('-').pop() : raw;
+    const value = Number(candidate);
+    return Number.isNaN(value) ? null : value;
   }
 }

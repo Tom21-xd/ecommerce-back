@@ -13,21 +13,21 @@ const productFullInclude = {
       },
     },
   },
-  ProductImage: true,        // relación con las imágenes
-  ProductCategory: {         // relación con las categorías
+  ProductImage: true, // relación con las imágenes
+  ProductCategory: {
+    // relación con las categorías
     include: {
-      category: true,        // se incluye la categoría asociada
+      category: true, // se incluye la categoría asociada
     },
   },
-  unidad: true,              // unidad de medida (opcional)
-  marca: true,               // marca (opcional)
+  unidad: true, // unidad de medida (opcional)
+  marca: true, // marca (opcional)
   review: {
     include: {
       user: { select: { id: true, username: true } },
     },
   },
 } as const;
-
 
 const pages = (total: number, limit: number) =>
   Math.max(1, Math.ceil(total / Math.max(1, limit)));
@@ -156,12 +156,17 @@ export class ProductsService {
     };
   }
 
-  async getAllProductsByUser(params: { userId?: number; phones?: string }, paginationDTO: PaginationDto) {
+  async getAllProductsByUser(
+    params: { userId?: number; phones?: string },
+    paginationDTO: PaginationDto,
+  ) {
     const { limit = 10, offset = 0 } = paginationDTO;
     let userId = params.userId;
     if (!userId && params.phones) {
       // Buscar el usuario por phones
-      const user = await this.prismaService.user.findFirst({ where: { phones: params.phones } });
+      const user = await this.prismaService.user.findFirst({
+        where: { phones: params.phones },
+      });
       if (!user) throw new NotFoundException('User not found');
       userId = user.id;
     }
@@ -229,7 +234,9 @@ export class ProductsService {
   }
 
   async update(id: number, updateData: Partial<CreateProductDto>) {
-    const product = await this.prismaService.product.findUnique({ where: { id } });
+    const product = await this.prismaService.product.findUnique({
+      where: { id },
+    });
     if (!product) {
       throw new NotFoundException('Product not found');
     }
@@ -251,7 +258,9 @@ export class ProductsService {
     // Si se actualizan categorías, eliminamos las anteriores y creamos nuevas
     let categoryUpdate = undefined;
     if (categoryIds) {
-      await this.prismaService.productCategory.deleteMany({ where: { productId: id } });
+      await this.prismaService.productCategory.deleteMany({
+        where: { productId: id },
+      });
       categoryUpdate = {
         create: categoryIds.map((categoryId) => ({ categoryId })),
       };
@@ -260,7 +269,9 @@ export class ProductsService {
     // Si se actualizan imágenes, eliminamos las anteriores y creamos nuevas
     let imageUpdate = undefined;
     if (images) {
-      await this.prismaService.productImage.deleteMany({ where: { productId: id } });
+      await this.prismaService.productImage.deleteMany({
+        where: { productId: id },
+      });
       imageUpdate = {
         create: images.map((img) => ({
           base64: img.base64,
@@ -290,7 +301,9 @@ export class ProductsService {
   }
 
   async delete(id: number) {
-    const product = await this.prismaService.product.findUnique({ where: { id } });
+    const product = await this.prismaService.product.findUnique({
+      where: { id },
+    });
     if (!product) {
       throw new NotFoundException('Product not found');
     }

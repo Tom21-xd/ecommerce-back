@@ -453,10 +453,7 @@ export class ProductsController {
       },
     },
   })
-  async getProductById(
-    @Param('id') id: string,
-    @Res() res: Response,
-  ) {
+  async getProductById(@Param('id') id: string, @Res() res: Response) {
     try {
       const result = await this.productsService.getById(Number(id));
       return res.status(HttpStatus.OK).json({
@@ -489,7 +486,10 @@ export class ProductsController {
     @Res() res: Response,
   ) {
     try {
-      const result = await this.productsService.update(Number(id), updateProductDto);
+      const result = await this.productsService.update(
+        Number(id),
+        updateProductDto,
+      );
       return res.status(HttpStatus.OK).json({
         status: 200,
         message: 'Product updated successfully',
@@ -514,10 +514,7 @@ export class ProductsController {
     status: HttpStatus.OK,
     description: 'Product deleted successfully.',
   })
-  async deleteProduct(
-    @Param('id') id: string,
-    @Res() res: Response,
-  ) {
+  async deleteProduct(@Param('id') id: string, @Res() res: Response) {
     try {
       const result = await this.productsService.delete(Number(id));
       return res.status(HttpStatus.OK).json({

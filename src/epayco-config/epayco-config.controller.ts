@@ -34,9 +34,18 @@ export class EpaycoConfigController {
   @ApiOperation({
     summary: 'Crear configuración de ePayco para el usuario autenticado',
   })
-  async create(@Request() req, @Body() createDto: CreateEpaycoConfigDto, @Res() res: Response) {
-    const result = await this.epaycoConfigService.create(req.user.id, createDto);
-    return res.status(HttpStatus.CREATED).json({ status: 201, message: 'created', result });
+  async create(
+    @Request() req,
+    @Body() createDto: CreateEpaycoConfigDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.epaycoConfigService.create(
+      req.user.id,
+      createDto,
+    );
+    return res
+      .status(HttpStatus.CREATED)
+      .json({ status: 201, message: 'created', result });
   }
 
   @Get()
@@ -46,7 +55,9 @@ export class EpaycoConfigController {
   })
   async findMine(@Request() req, @Res() res: Response) {
     const result = await this.epaycoConfigService.findByUserId(req.user.id);
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'ok', result });
   }
 
   @Get('user/:userId')
@@ -54,9 +65,14 @@ export class EpaycoConfigController {
   @ApiOperation({
     summary: 'Obtener configuración de ePayco de un usuario (solo ADMIN)',
   })
-  async findOne(@Param('userId', ParseIntPipe) userId: number, @Res() res: Response) {
+  async findOne(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Res() res: Response,
+  ) {
     const result = await this.epaycoConfigService.findByUserId(userId);
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'ok', result });
   }
 
   @Patch()
@@ -64,9 +80,18 @@ export class EpaycoConfigController {
   @ApiOperation({
     summary: 'Actualizar configuración de ePayco del usuario autenticado',
   })
-  async update(@Request() req, @Body() updateDto: UpdateEpaycoConfigDto, @Res() res: Response) {
-    const result = await this.epaycoConfigService.update(req.user.id, updateDto);
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'updated', result });
+  async update(
+    @Request() req,
+    @Body() updateDto: UpdateEpaycoConfigDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.epaycoConfigService.update(
+      req.user.id,
+      updateDto,
+    );
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'updated', result });
   }
 
   @Delete()
@@ -76,7 +101,9 @@ export class EpaycoConfigController {
   })
   async delete(@Request() req, @Res() res: Response) {
     const result = await this.epaycoConfigService.delete(req.user.id);
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'deleted', result });
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'deleted', result });
   }
 
   @Patch('activate')
@@ -86,7 +113,9 @@ export class EpaycoConfigController {
   })
   async activate(@Request() req, @Res() res: Response) {
     const result = await this.epaycoConfigService.activate(req.user.id);
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'activated', result });
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'activated', result });
   }
 
   @Patch('deactivate')
@@ -96,6 +125,8 @@ export class EpaycoConfigController {
   })
   async deactivate(@Request() req, @Res() res: Response) {
     const result = await this.epaycoConfigService.deactivate(req.user.id);
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'deactivated', result });
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'deactivated', result });
   }
 }

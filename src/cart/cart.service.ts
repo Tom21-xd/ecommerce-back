@@ -1,19 +1,51 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AddItemDto } from './dto/add-item.dto';
 import { CheckoutDto } from './dto/checkout.dto';
-import { AddressType, OrderStatus, PaymentStatus, ShipmentStatus } from '@prisma/client';
-import { JwtService } from '@nestjs/jwt';
+import {
+  AddressType,
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  ShipmentStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class CartService {
-  constructor(
-    private jwtService: JwtService,
-    private prisma: PrismaService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
+
+  private readonly cartInclude = {
+    items: {
+      include: {
+        product: {
+          include: {
+            container: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    username: true,
+                    email: true,
+                    phones: true,
+                  },
+                },
+              },
+            },
+            ProductImage: true,
+          },
+        },
+      },
+    },
+  };
 
   private async findProduct(productId: number) {
-    const p = await this.prisma.product.findUnique({ where: { id: productId }});
+    const p = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!p || !p.isActive) throw new NotFoundException('Product not available');
     return p;
   }
@@ -21,36 +53,51 @@ export class CartService {
   async getOrCreateCart(params: { userId?: number | null; phones?: string }) {
     let userId = params.userId;
     if (!userId && params.phones) {
-      const user = await this.prisma.user.findFirst({ where: { phones: params.phones } });
+      const user = await this.prisma.user.findFirst({
+        where: { phones: params.phones },
+      });
       if (user) userId = user.id;
     }
     if (userId) {
-      let cart = await this.prisma.cart.findFirst({ where: { userId }, include: { items: { include: { product: true } } } });
+      let cart = await this.prisma.cart.findFirst({
+        where: { userId },
+        include: this.cartInclude,
+      });
       if (!cart) {
         await this.prisma.cart.create({ data: { userId } });
-        cart = await this.prisma.cart.findFirst({ where: { userId }, include: { items: { include: { product: true } } } });
+        cart = await this.prisma.cart.findFirst({
+          where: { userId },
+          include: this.cartInclude,
+        });
       }
       return cart;
     }
     const cart = await this.prisma.cart.create({ data: {} });
-    return this.prisma.cart.findUnique({ where: { id: cart.id }, include: { items: { include: { product: true } } } });
+    return this.prisma.cart.findUnique({
+      where: { id: cart.id },
+      include: this.cartInclude,
+    });
   }
 
-  async addItem(params: { userId?: number | null; phones?: string }, dto: AddItemDto) {
+  async addItem(
+    params: { userId?: number | null; phones?: string },
+    dto: AddItemDto,
+  ) {
     const { productId, qty } = dto;
     const product = await this.findProduct(productId);
 
-    // valida stock
-    if (qty > product.quantity) throw new BadRequestException('Insufficient stock');
+    if (qty > product.quantity)
+      throw new BadRequestException('Insufficient stock');
 
-    // get/create cart
-  const cart = await this.getOrCreateCart(params);
+    const cart = await this.getOrCreateCart(params);
 
-    // upsert item
-    const existing = await this.prisma.cart_item.findUnique({ where: { cartId_productId: { cartId: cart.id, productId } } });
+    const existing = await this.prisma.cart_item.findUnique({
+      where: { cartId_productId: { cartId: cart.id, productId } },
+    });
     if (existing) {
       const newQty = existing.qty + qty;
-      if (newQty > product.quantity) throw new BadRequestException('Insufficient stock');
+      if (newQty > product.quantity)
+        throw new BadRequestException('Insufficient stock');
       return this.prisma.cart_item.update({
         where: { id: existing.id },
         data: { qty: newQty, priceAtAdd: product.price },
@@ -61,9 +108,15 @@ export class CartService {
     });
   }
 
-  async updateItem(params: { userId?: number | null; phones?: string }, productId: number, qty: number) {
+  async updateItem(
+    params: { userId?: number | null; phones?: string },
+    productId: number,
+    qty: number,
+  ) {
     const cart = await this.getOrCreateCart(params);
-    const item = await this.prisma.cart_item.findUnique({ where: { cartId_productId: { cartId: cart.id, productId } } });
+    const item = await this.prisma.cart_item.findUnique({
+      where: { cartId_productId: { cartId: cart.id, productId } },
+    });
     if (!item) throw new NotFoundException('Item not found');
 
     if (qty === 0) {
@@ -71,57 +124,112 @@ export class CartService {
       return { deleted: true };
     }
     const product = await this.findProduct(productId);
-    if (qty > product.quantity) throw new BadRequestException('Insufficient stock');
+    if (qty > product.quantity)
+      throw new BadRequestException('Insufficient stock');
 
-    return this.prisma.cart_item.update({ where: { id: item.id }, data: { qty } });
+    return this.prisma.cart_item.update({
+      where: { id: item.id },
+      data: { qty },
+    });
   }
 
-  async removeItem(params: { userId?: number | null; phones?: string }, productId: number) {
+  async removeItem(
+    params: { userId?: number | null; phones?: string },
+    productId: number,
+  ) {
     const cart = await this.getOrCreateCart(params);
-    const item = await this.prisma.cart_item.findUnique({ where: { cartId_productId: { cartId: cart.id, productId } } });
+    const item = await this.prisma.cart_item.findUnique({
+      where: { cartId_productId: { cartId: cart.id, productId } },
+    });
     if (!item) return { deleted: true };
     await this.prisma.cart_item.delete({ where: { id: item.id } });
     return { deleted: true };
   }
 
   /**
-   * Checkout:
-   * - Toma items del carrito
-   * - Valida stock
-   * - Crea pedido + detalles
-   * - Duplica address en pedido_address (shipping y, opcional, billing)
-   * - Crea registro payment (PENDING) y shipment (PENDING o NOT_REQUIRED)
-   * - Descuenta stock
-   * - Limpia carrito
+   * Checkout por vendedor:
+   * - Valida la direccion y el stock
+   * - Crea un pedido solo con los productos del vendedor indicado
+   * - Genera pago y envio pendientes
+   * - Elimina del carrito solo los items usados
    */
-  async checkout(params: { userId?: number | null; phones?: string }, dto: CheckoutDto) {
+  async checkout(
+    params: { userId?: number | null; phones?: string },
+    dto: CheckoutDto,
+  ) {
     let userId = params.userId;
     if (!userId && params.phones) {
-      const user = await this.prisma.user.findFirst({ where: { phones: params.phones } });
+      const user = await this.prisma.user.findFirst({
+        where: { phones: params.phones },
+      });
       if (user) userId = user.id;
     }
     if (!userId) throw new NotFoundException('User not found');
-    const cart = await this.prisma.cart.findFirst({ where: { userId }, include: { items: { include: { product: true } } } });
-    if (!cart || cart.items.length === 0) throw new BadRequestException('Cart is empty');
 
-    // Usa dirección por defecto del usuario o la addressId provista
+    const cart = await this.prisma.cart.findFirst({
+      where: { userId },
+      include: this.cartInclude,
+    });
+    if (!cart || cart.items.length === 0)
+      throw new BadRequestException('Cart is empty');
+
     let address = null;
     if (dto.addressId) {
-      address = await this.prisma.address.findFirst({ where: { id: dto.addressId, userId } });
+      address = await this.prisma.address.findFirst({
+        where: { id: dto.addressId, userId },
+      });
       if (!address) throw new NotFoundException('Address not found');
     } else {
-      address = await this.prisma.address.findFirst({ where: { userId, isDefault: true } });
-      if (!address) throw new BadRequestException('No default address, provide one');
+      address = await this.prisma.address.findFirst({
+        where: { userId, isDefault: true },
+      });
+      if (!address)
+        throw new BadRequestException('No default address, provide one');
     }
 
-    // Verificación de stock final
-    for (const it of cart.items) {
-      if (it.qty > it.product.quantity) {
-        throw new BadRequestException(`Insufficient stock for ${it.product.name}`);
+    const sellerIdFilter = dto.sellerId;
+    let itemsForCheckout = cart.items;
+
+    if (sellerIdFilter) {
+      itemsForCheckout = cart.items.filter(
+        (it) => it.product?.container?.userId === sellerIdFilter,
+      );
+      if (itemsForCheckout.length === 0) {
+        throw new BadRequestException(
+          'No hay productos de ese vendedor en tu carrito',
+        );
+      }
+    } else {
+      const sellerIds = new Set(
+        cart.items.map((it) => it.product?.container?.userId).filter(Boolean),
+      );
+      if (sellerIds.size > 1) {
+        throw new BadRequestException(
+          'Tu carrito tiene productos de varios vendedores. Selecciona un vendedor para continuar',
+        );
       }
     }
 
-    const total = cart.items.reduce((acc, it) => acc + Number(it.priceAtAdd) * it.qty, 0);
+    const checkoutSellerId =
+      sellerIdFilter ?? itemsForCheckout[0]?.product?.container?.userId;
+    if (!checkoutSellerId) {
+      throw new BadRequestException(
+        'No se pudo determinar el vendedor para este pedido',
+      );
+    }
+
+    for (const it of itemsForCheckout) {
+      if (it.qty > it.product.quantity) {
+        throw new BadRequestException(
+          `Insufficient stock for ${it.product.name}`,
+        );
+      }
+    }
+
+    const total = itemsForCheckout.reduce(
+      (acc, it) => acc + Number(it.priceAtAdd) * it.qty,
+      0,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.pedido.create({
@@ -132,8 +240,7 @@ export class CartService {
         },
       });
 
-      // detalles
-      for (const it of cart.items) {
+      for (const it of itemsForCheckout) {
         await tx.detalle_pedido.create({
           data: {
             pedidoId: order.id,
@@ -146,14 +253,12 @@ export class CartService {
           },
         });
 
-        // descuenta stock
         await tx.product.update({
           where: { id: it.productId },
           data: { quantity: { decrement: it.qty } },
         });
       }
 
-      // address SHIP
       await tx.pedido_address.create({
         data: {
           pedidoId: order.id,
@@ -169,17 +274,17 @@ export class CartService {
         },
       });
 
-      // payment pending
       await tx.payment.create({
         data: {
           pedidoId: order.id,
           amount: total,
           status: PaymentStatus.PENDING,
           currency: 'COP',
+          method: PaymentMethod.GATEWAY,
+          containerId: checkoutSellerId,
         },
       });
 
-      // shipment pending (puedes marcar NOT_REQUIRED si pickup)
       await tx.shipment.create({
         data: {
           pedidoId: order.id,
@@ -187,13 +292,35 @@ export class CartService {
         },
       });
 
-      // limpia carrito
-      await tx.cart_item.deleteMany({ where: { cartId: cart.id } });
+      await tx.cart_item.deleteMany({
+        where: {
+          id: { in: itemsForCheckout.map((it) => it.id) },
+        },
+      });
 
       return tx.pedido.findUnique({
         where: { id: order.id },
         include: {
-          pedido_producto: true,
+          pedido_producto: {
+            include: {
+              producto: {
+                include: {
+                  container: {
+                    include: {
+                      user: {
+                        select: {
+                          id: true,
+                          username: true,
+                          email: true,
+                          phones: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           payment: true,
           shipment: true,
           pedido_address: true,

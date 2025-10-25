@@ -27,38 +27,76 @@ import { UpsertAddressDto } from './dto/addresses.dto';
 @Controller('addresses')
 @UseGuards(JwtAuthGuard)
 export class AddressController {
-  constructor(private readonly addressService:AddressService ) {}
+  constructor(private readonly addressService: AddressService) {}
   @Get()
   @ApiOperation({ summary: 'List my addresses' })
-  async list(@Req() req: Request, @Res() res: Response, @Query('phones') phones?: string) {
+  async list(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('phones') phones?: string,
+  ) {
     const user = req.user as any;
     const result = await this.addressService.list({ userId: user?.id, phones });
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'ok', result });
   }
 
   @Post()
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Create address' })
-  async create(@Req() req: Request, @Res() res: Response, @Body() dto: UpsertAddressDto, @Query('phones') phones?: string) {
+  async create(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() dto: UpsertAddressDto,
+    @Query('phones') phones?: string,
+  ) {
     const user = req.user as any;
-    const result = await this.addressService.upsert({ userId: user?.id, phones }, dto);
-    return res.status(HttpStatus.CREATED).json({ status: 201, message: 'created', result });
+    const result = await this.addressService.upsert(
+      { userId: user?.id, phones },
+      dto,
+    );
+    return res
+      .status(HttpStatus.CREATED)
+      .json({ status: 201, message: 'created', result });
   }
 
   @Patch(':id')
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Update address' })
-  async update(@Req() req: Request, @Res() res: Response, @Param('id') id: string, @Body() dto: UpsertAddressDto, @Query('phones') phones?: string) {
+  async update(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('id') id: string,
+    @Body() dto: UpsertAddressDto,
+    @Query('phones') phones?: string,
+  ) {
     const user = req.user as any;
-    const result = await this.addressService.upsert({ userId: user?.id, phones }, dto, Number(id));
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'updated', result });
+    const result = await this.addressService.upsert(
+      { userId: user?.id, phones },
+      dto,
+      Number(id),
+    );
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'updated', result });
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete address' })
-  async remove(@Req() req: Request, @Res() res: Response, @Param('id') id: string, @Query('phones') phones?: string) {
+  async remove(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('id') id: string,
+    @Query('phones') phones?: string,
+  ) {
     const user = req.user as any;
-    const result = await this.addressService.remove({ userId: user?.id, phones }, Number(id));
-    return res.status(HttpStatus.OK).json({ status: 200, message: 'deleted', result });
+    const result = await this.addressService.remove(
+      { userId: user?.id, phones },
+      Number(id),
+    );
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'deleted', result });
   }
 }

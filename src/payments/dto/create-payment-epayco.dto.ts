@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDecimal, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsDecimal,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreatePaymentEpaycoDto {
   @ApiProperty({
@@ -35,7 +41,7 @@ export class CreatePaymentEpaycoDto {
 
   @ApiProperty({
     description: 'Valor del impuesto al consumo',
-    example: 1232.20,
+    example: 1232.2,
     required: false,
   })
   @IsOptional()

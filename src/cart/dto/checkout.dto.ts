@@ -4,5 +4,10 @@ export class CheckoutDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  addressId?: number; 
+  addressId?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  sellerId?: number;
 }

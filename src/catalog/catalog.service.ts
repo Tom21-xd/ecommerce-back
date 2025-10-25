@@ -6,8 +6,12 @@ export class CatalogService {
   constructor(private prisma: PrismaService) {}
 
   // unidad
-  createUnidad(nombre: string) { return this.prisma.unidad.create({ data: { nombre } }); }
-  listUnidad() { return this.prisma.unidad.findMany({ orderBy: { nombre: 'asc' } }); }
+  createUnidad(nombre: string) {
+    return this.prisma.unidad.create({ data: { nombre } });
+  }
+  listUnidad() {
+    return this.prisma.unidad.findMany({ orderBy: { nombre: 'asc' } });
+  }
   async deleteUnidad(id: number) {
     const unidad = await this.prisma.unidad.findUnique({ where: { id } });
     if (!unidad) throw new NotFoundException('Unidad not found');
@@ -16,8 +20,12 @@ export class CatalogService {
   }
 
   // marca
-  createMarca(nombre: string) { return this.prisma.marca.create({ data: { nombre } }); }
-  listMarca() { return this.prisma.marca.findMany({ orderBy: { nombre: 'asc' } }); }
+  createMarca(nombre: string) {
+    return this.prisma.marca.create({ data: { nombre } });
+  }
+  listMarca() {
+    return this.prisma.marca.findMany({ orderBy: { nombre: 'asc' } });
+  }
   async deleteMarca(id: number) {
     const marca = await this.prisma.marca.findUnique({ where: { id } });
     if (!marca) throw new NotFoundException('Marca not found');
@@ -41,17 +49,32 @@ export class CatalogService {
 
   // product images
   addImage(productId: number, base64: string, alt?: string, position = 0) {
-    return this.prisma.productImage.create({ data: { productId, base64, alt, position } });
+    return this.prisma.productImage.create({
+      data: { productId, base64, alt, position },
+    });
   }
   listImages(productId: number) {
-    return this.prisma.productImage.findMany({ where: { productId }, orderBy: { position: 'asc' } });
+    return this.prisma.productImage.findMany({
+      where: { productId },
+      orderBy: { position: 'asc' },
+    });
   }
 
   // reviews
-  addReview(userId: number, productId: number, rating: number, comment?: string) {
-    return this.prisma.review.create({ data: { userId, productId, rating, comment } });
+  addReview(
+    userId: number,
+    productId: number,
+    rating: number,
+    comment?: string,
+  ) {
+    return this.prisma.review.create({
+      data: { userId, productId, rating, comment },
+    });
   }
   listReviews(productId: number) {
-    return this.prisma.review.findMany({ where: { productId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.review.findMany({
+      where: { productId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }

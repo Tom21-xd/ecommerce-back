@@ -10,7 +10,10 @@ export class EpaycoButtonDataDto {
   @ApiProperty({ description: 'Valor del impuesto', required: false })
   tax?: number;
 
-  @ApiProperty({ description: 'Valor del impuesto al consumo', required: false })
+  @ApiProperty({
+    description: 'Valor del impuesto al consumo',
+    required: false,
+  })
   taxIco?: number;
 
   @ApiProperty({ description: 'Base gravable', required: false })
@@ -34,7 +37,10 @@ export class EpaycoButtonDataDto {
   @ApiProperty({ description: 'URL de respuesta (opcional)', required: false })
   responseUrl?: string;
 
-  @ApiProperty({ description: 'URL de confirmación (webhook)', required: false })
+  @ApiProperty({
+    description: 'URL de confirmación (webhook)',
+    required: false,
+  })
   confirmationUrl?: string;
 
   @ApiProperty({ description: 'Referencia externa', required: false })
