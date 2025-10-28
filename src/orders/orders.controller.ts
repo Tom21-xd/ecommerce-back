@@ -38,6 +38,18 @@ export class OrdersController {
       .json({ status: 200, message: 'ok', result });
   }
 
+  @Get('seller/pending')
+  @UseGuards(RolesGuard)
+  @Roles(Role.SELLER, Role.BUYER)
+  @ApiOperation({ summary: 'List pending orders for seller' })
+  async listForSeller(@Req() req: Request, @Res() res: Response) {
+    const user = req.user as any;
+    const result = await this.service.listForSeller(user?.id);
+    return res
+      .status(HttpStatus.OK)
+      .json({ status: 200, message: 'ok', result });
+  }
+
   @Get('admin')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)

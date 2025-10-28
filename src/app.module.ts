@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
@@ -11,9 +13,16 @@ import { ShipmentsModule } from './shipments/shipments.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { AddressModule } from './address/address.module';
 import { EpaycoConfigModule } from './epayco-config/epayco-config.module';
+import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
+import { VendorPayoutsModule } from './vendor-payouts/vendor-payouts.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // Hace que ConfigModule esté disponible globalmente
+      envFilePath: '.env',
+    }),
+    ScheduleModule.forRoot(), // Habilita tareas programadas
     AuthModule,
     ProductsModule,
     ProductContainerModule,
@@ -25,6 +34,8 @@ import { EpaycoConfigModule } from './epayco-config/epayco-config.module';
     ShipmentsModule,
     CatalogModule,
     EpaycoConfigModule,
+    BankAccountsModule,
+    VendorPayoutsModule,
   ],
   providers: [AppService],
 })

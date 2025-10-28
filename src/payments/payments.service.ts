@@ -5,15 +5,15 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { EpaycoConfigService } from '../epayco-config/epayco-config.service';
 import { CreatePaymentEpaycoDto } from './dto/create-payment-epayco.dto';
 import { EpaycoButtonDataDto } from './dto/epayco-response.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private prisma: PrismaService,
-    private epaycoConfigService: EpaycoConfigService,
+    private configService: ConfigService,
   ) {}
 
   listByOrder(pedidoId: number) {
@@ -49,6 +49,10 @@ export class PaymentsService {
     return this.prisma.payment.update({ where: { id }, data: { status } });
   }
 
+  /**
+   * Genera datos para el botón de ePayco usando credenciales centralizadas del admin
+   * El admin actúa como intermediario y luego dispersa a los vendedores
+   */
   async generateEpaycoButtonData(
     dto: CreatePaymentEpaycoDto,
   ): Promise<EpaycoButtonDataDto> {
@@ -89,6 +93,7 @@ export class PaymentsService {
       throw new NotFoundException('Vendedor no encontrado');
     }
 
+    // Verificar que todos los productos pertenezcan al mismo vendedor
     const hasDifferentSeller = pedido.pedido_producto.some(
       (detalle) => detalle.producto?.container?.userId !== dto.sellerId,
     );
@@ -98,23 +103,19 @@ export class PaymentsService {
       );
     }
 
-    let epaycoConfig;
-    try {
-      epaycoConfig = await this.epaycoConfigService.findByUserId(dto.sellerId);
-    } catch (error) {
-      throw new BadRequestException(
-        'El vendedor no tiene configurada una cuenta de ePayco',
-      );
-    }
+    // Usar credenciales centralizadas del admin desde .env
+    const publicKey = this.configService.get<string>('EPAYCO_PUBLIC_KEY');
+    const isTestMode = this.configService.get<string>('EPAYCO_TEST_MODE') === 'true';
 
-    if (!epaycoConfig.isActive) {
+    if (!publicKey) {
       throw new BadRequestException(
-        'La configuraci��n de ePayco del vendedor est�� desactivada',
+        'No hay configuracion de ePayco del administrador. Configure EPAYCO_PUBLIC_KEY en .env',
       );
     }
 
     const amount = dto.amount ?? Number(pedido.precio_total);
 
+    // Crear el registro de pago pendiente
     const payment = await this.prisma.payment.create({
       data: {
         pedidoId: dto.pedidoId,
@@ -122,7 +123,7 @@ export class PaymentsService {
         method: PaymentMethod.GATEWAY,
         status: PaymentStatus.PENDING,
         provider: 'EPAYCO',
-        containerId: dto.sellerId,
+        containerId: dto.sellerId, // Guardamos el vendedor para la dispersión posterior
         currency: 'COP',
       },
     });
@@ -134,8 +135,9 @@ export class PaymentsService {
       'http://localhost:3000';
     const externalRef = dto.externalRef || `PAYMENT-${payment.id}`;
 
+    // Datos del botón de pago con credenciales del admin
     const buttonData: EpaycoButtonDataDto = {
-      publicKey: epaycoConfig.publicKey,
+      publicKey, // Public key del admin (centralizado)
       amount,
       tax: dto.tax || 0,
       taxIco: dto.taxIco || 0,
@@ -144,7 +146,7 @@ export class PaymentsService {
       description: dto.description,
       currency: 'COP',
       country: 'CO',
-      test: epaycoConfig.isTestMode,
+      test: isTestMode, // Modo de prueba del admin
       externalRef,
       confirmationUrl: `${apiUrl}/payments/webhook/epayco`,
       responseUrl: `${frontendUrl}/orders/${dto.pedidoId}`,
@@ -153,13 +155,17 @@ export class PaymentsService {
     return buttonData;
   }
 
+  /**
+   * Procesa el webhook de confirmación de ePayco
+   * Actualiza el estado del pago y la orden
+   */
   async processEpaycoWebhook(response: any) {
     const externalRef =
       response?.x_extra1 || response?.x_ref_payco || response?.x_id_invoice;
     const paymentId = this.extractPaymentId(externalRef);
     if (!paymentId) {
       throw new BadRequestException(
-        'No se pudo determinar el pago desde la confirmaci��n de ePayco',
+        'No se pudo determinar el pago desde la confirmacion de ePayco',
       );
     }
 
@@ -182,6 +188,7 @@ export class PaymentsService {
       },
     });
 
+    // Si el pago fue exitoso, marcar la orden como pagada
     if (status === PaymentStatus.CONFIRMED) {
       await this.prisma.pedido.update({
         where: { id: payment.pedidoId },

@@ -22,6 +22,8 @@ model User {
   cart         cart[]
   review       review[]
   epaycoConfig EpaycoConfig?
+  bankAccounts BankAccount[] // Cuentas bancarias del vendedor
+  vendorPayouts VendorPayout[] // Pagos recibidos como vendedor
 
   @@index([email])
 }
@@ -317,4 +319,84 @@ enum ShipmentStatus {
   SHIPPED
   DELIVERED
   RETURNED
+}
+
+// ============================================
+// NUEVOS MODELOS PARA SISTEMA DE DISPERSIÓN
+// ============================================
+
+// Cuentas bancarias de los vendedores
+model BankAccount {
+  id              Int      @id @default(autoincrement())
+  userId          Int      // Vendedor propietario de la cuenta
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  bankName        String   // Nombre del banco (ej: Bancolombia, Davivienda)
+  accountType     AccountType // Tipo de cuenta (AHORROS, CORRIENTE)
+  accountNumber   String   // Número de cuenta bancaria
+  holderName      String   // Nombre del titular de la cuenta
+  holderDocument  String   // Documento del titular (CC, NIT)
+  documentType    DocumentType @default(CC)
+  isActive        Boolean  @default(true) // Solo una cuenta activa por vendedor
+  isVerified      Boolean  @default(false) // Verificación manual por admin
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, isActive])
+  @@index([userId])
+}
+
+// Configuración global del sistema de dispersión (una sola fila)
+model DispersionConfig {
+  id                  Int      @id @default(autoincrement())
+  dispersalFrequency  Int      @default(7) // Días entre dispersiones (ej: 7, 15, 30)
+  adminCommission     Decimal  @db.Decimal(5, 2) @default(10.00) // Comisión del admin en porcentaje (ej: 10.00 = 10%)
+  minimumPayout       Decimal  @db.Decimal(12, 2) @default(50000) // Mínimo para dispersar (en COP)
+  isAutoDispersalOn   Boolean  @default(true) // Activar/desactivar dispersiones automáticas
+  lastDispersalDate   DateTime? // Última fecha de dispersión ejecutada
+  nextDispersalDate   DateTime? // Próxima fecha programada
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// Registro de dispersiones/pagos realizados a vendedores
+model VendorPayout {
+  id              Int           @id @default(autoincrement())
+  vendorId        Int           // ID del vendedor que recibe el pago
+  vendor          User          @relation(fields: [vendorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  amount          Decimal       @db.Decimal(12, 2) // Monto a dispersar
+  adminCommission Decimal       @db.Decimal(12, 2) // Comisión retenida por el admin
+  netAmount       Decimal       @db.Decimal(12, 2) // Monto neto transferido al vendedor
+  status          PayoutStatus  @default(PENDING)
+  paymentIds      String?       // IDs de payments incluidos (JSON array)
+  bankAccount     String?       // Snapshot de cuenta bancaria usada (JSON)
+  epaycoReference String?       // Referencia de la transferencia en ePayco
+  epaycoResponse  String?       // Respuesta completa de ePayco (JSON)
+  errorMessage    String?       // Mensaje de error si falla
+  processedAt     DateTime?     // Fecha de procesamiento exitoso
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([vendorId, status])
+  @@index([vendorId, createdAt])
+  @@index([status])
+}
+
+enum AccountType {
+  AHORROS
+  CORRIENTE
+}
+
+enum DocumentType {
+  CC  // Cédula de Ciudadanía
+  CE  // Cédula de Extranjería
+  NIT // Número de Identificación Tributaria
+  PP  // Pasaporte
+}
+
+enum PayoutStatus {
+  PENDING      // Pendiente de procesamiento
+  PROCESSING   // En proceso de transferencia
+  COMPLETED    // Completado exitosamente
+  FAILED       // Falló la transferencia
+  CANCELLED    // Cancelado manualmente
 }

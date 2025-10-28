@@ -82,4 +82,44 @@ export class OrdersService {
     if (!exists) throw new NotFoundException('Order not found');
     return this.prisma.pedido.update({ where: { id }, data: { status } });
   }
+
+  async listForSeller(sellerId: number) {
+    return this.prisma.pedido.findMany({
+      where: {
+        status: OrderStatus.PAID,
+        pedido_producto: {
+          some: {
+            producto: {
+              container: {
+                userId: sellerId,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, email: true, username: true, phones: true } },
+        pedido_address: true,
+        shipment: true,
+        payment: true,
+        pedido_producto: {
+          where: {
+            producto: {
+              container: {
+                userId: sellerId,
+              },
+            },
+          },
+          include: {
+            producto: {
+              include: {
+                container: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }
