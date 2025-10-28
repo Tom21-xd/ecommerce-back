@@ -17,12 +17,13 @@ export class CreatePaymentEpaycoDto {
   pedidoId: number;
 
   @ApiProperty({
-    description: 'ID del vendedor que recibe el pago',
+    description: 'ID del vendedor que recibe el pago (opcional para pagos multi-vendedor)',
     example: 2,
+    required: false,
   })
   @IsNumber()
-  @IsNotEmpty()
-  sellerId: number;
+  @IsOptional()
+  sellerId?: number;
 
   @ApiProperty({
     description: 'Monto total del pago',

@@ -12,6 +12,7 @@ import {
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { Role, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { PaymentsService } from './payments.service';
 import { Response } from 'express';
@@ -70,6 +71,7 @@ export class PaymentsController {
       .json({ status: 200, message: 'ok', result });
   }
 
+  @Public()
   @Post('webhook/epayco')
   @ApiOperation({
     summary: 'Webhook de confirmación de ePayco',

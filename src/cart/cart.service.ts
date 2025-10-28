@@ -189,8 +189,10 @@ export class CartService {
 
     const sellerIdFilter = dto.sellerId;
     let itemsForCheckout = cart.items;
+    let checkoutSellerId: number | null = null;
 
     if (sellerIdFilter) {
+      // Si se especifica un vendedor, filtrar solo sus productos
       itemsForCheckout = cart.items.filter(
         (it) => it.product?.container?.userId === sellerIdFilter,
       );
@@ -199,23 +201,11 @@ export class CartService {
           'No hay productos de ese vendedor en tu carrito',
         );
       }
+      checkoutSellerId = sellerIdFilter;
     } else {
-      const sellerIds = new Set(
-        cart.items.map((it) => it.product?.container?.userId).filter(Boolean),
-      );
-      if (sellerIds.size > 1) {
-        throw new BadRequestException(
-          'Tu carrito tiene productos de varios vendedores. Selecciona un vendedor para continuar',
-        );
-      }
-    }
-
-    const checkoutSellerId =
-      sellerIdFilter ?? itemsForCheckout[0]?.product?.container?.userId;
-    if (!checkoutSellerId) {
-      throw new BadRequestException(
-        'No se pudo determinar el vendedor para este pedido',
-      );
+      // Multi-vendedor: pago centralizado en ePayco del admin
+      // containerId será null para indicar que es un pago multi-vendedor
+      checkoutSellerId = null;
     }
 
     for (const it of itemsForCheckout) {

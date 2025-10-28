@@ -85,23 +85,27 @@ export class PaymentsService {
       throw new NotFoundException('Pedido no encontrado');
     }
 
-    const seller = await this.prisma.user.findUnique({
-      where: { id: dto.sellerId },
-    });
+    // Validar vendedor solo si se especifica (pago de un solo vendedor)
+    if (dto.sellerId) {
+      const seller = await this.prisma.user.findUnique({
+        where: { id: dto.sellerId },
+      });
 
-    if (!seller) {
-      throw new NotFoundException('Vendedor no encontrado');
-    }
+      if (!seller) {
+        throw new NotFoundException('Vendedor no encontrado');
+      }
 
-    // Verificar que todos los productos pertenezcan al mismo vendedor
-    const hasDifferentSeller = pedido.pedido_producto.some(
-      (detalle) => detalle.producto?.container?.userId !== dto.sellerId,
-    );
-    if (hasDifferentSeller) {
-      throw new BadRequestException(
-        'El pedido contiene productos de otro vendedor',
+      // Verificar que todos los productos pertenezcan al mismo vendedor
+      const hasDifferentSeller = pedido.pedido_producto.some(
+        (detalle) => detalle.producto?.container?.userId !== dto.sellerId,
       );
+      if (hasDifferentSeller) {
+        throw new BadRequestException(
+          'El pedido contiene productos de otro vendedor',
+        );
+      }
     }
+    // Si no se especifica sellerId, es un pago multi-vendedor (centralizado en admin)
 
     // Usar credenciales centralizadas del admin desde .env
     const publicKey = this.configService.get<string>('EPAYCO_PUBLIC_KEY');
@@ -123,7 +127,7 @@ export class PaymentsService {
         method: PaymentMethod.GATEWAY,
         status: PaymentStatus.PENDING,
         provider: 'EPAYCO',
-        containerId: dto.sellerId, // Guardamos el vendedor para la dispersión posterior
+        containerId: dto.sellerId ?? null, // null = multi-vendedor, number = vendedor específico
         currency: 'COP',
       },
     });
