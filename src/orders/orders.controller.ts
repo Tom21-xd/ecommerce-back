@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { RolesGuard } from 'src/common/guards/roles.guard';
+import { RolesGuard } from '../auth/roles.guard';
 import { Role, OrderStatus } from '@prisma/client';
 import { OrdersService } from './orders.service';
 import { Request, Response } from 'express';

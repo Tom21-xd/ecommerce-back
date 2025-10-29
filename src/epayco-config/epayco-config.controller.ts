@@ -18,7 +18,7 @@ import { EpaycoConfigService } from './epayco-config.service';
 import { CreateEpaycoConfigDto } from './dto/create-epayco-config.dto';
 import { UpdateEpaycoConfigDto } from './dto/update-epayco-config.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
+import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 

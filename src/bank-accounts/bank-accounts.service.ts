@@ -17,7 +17,7 @@ export class BankAccountsService {
    * Si isActive=true, desactiva las otras cuentas del vendedor
    */
   async create(userId: number, createBankAccountDto: CreateBankAccountDto) {
-    // Verificar que el usuario sea SELLER
+    // Verificar que el usuario exista
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -26,8 +26,9 @@ export class BankAccountsService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    if (user.role !== 'SELLER') {
-      throw new BadRequestException('Solo los vendedores pueden registrar cuentas bancarias');
+    // Permitir que tanto SELLER como BUYER puedan registrar cuentas bancarias
+    if (user.role !== 'SELLER' && user.role !== 'BUYER') {
+      throw new BadRequestException('Solo los vendedores y compradores pueden registrar cuentas bancarias');
     }
 
     // Si isActive es true, desactivar todas las otras cuentas

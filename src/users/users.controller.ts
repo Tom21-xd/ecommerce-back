@@ -170,6 +170,30 @@ export class UsersController {
     }
   }
 
+  @Patch('upgrade-to-seller')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Upgrade current user to SELLER role' })
+  async upgradeToSeller(@Req() req: Request, @Res() response: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      const result = await this.usersService.upgradeToSeller(userId);
+      return response.status(200).json({
+        status: 'Ok!',
+        message: 'Usuario actualizado a vendedor exitosamente',
+        result: result,
+      });
+    } catch (err) {
+      console.error('Error upgrading to seller:', err);
+      const status = err.status || 500;
+      const message = err.response?.message || err.message || 'Error al actualizar rol';
+      response.statusMessage = message;
+      return response.status(status).json({
+        status: 'Error',
+        message: message,
+      });
+    }
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @Roles(Role.ADMIN)

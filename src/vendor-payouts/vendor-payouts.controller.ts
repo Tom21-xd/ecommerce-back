@@ -45,15 +45,17 @@ export class VendorPayoutsController {
   @Get('config')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Admin: Obtener configuracion de dispersion' })
-  getConfig() {
-    return this.vendorPayoutsService.getOrCreateDispersionConfig();
+  async getConfig(@Res() res: Response) {
+    const result = await this.vendorPayoutsService.getOrCreateDispersionConfig();
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   @Patch('config')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Admin: Actualizar configuracion de dispersion' })
-  updateConfig(@Body() dto: CreateDispersionConfigDto) {
-    return this.vendorPayoutsService.updateDispersionConfig(dto);
+  async updateConfig(@Body() dto: CreateDispersionConfigDto, @Res() res: Response) {
+    const result = await this.vendorPayoutsService.updateDispersionConfig(dto);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   // ============================================
@@ -71,15 +73,17 @@ export class VendorPayoutsController {
   @Get('balances')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Admin: Obtener balances de todos los vendedores' })
-  getAllBalances() {
-    return this.vendorPayoutsService.getAllVendorBalances();
+  async getAllBalances(@Res() res: Response) {
+    const result = await this.vendorPayoutsService.getAllVendorBalances();
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   @Get('balance/:vendorId')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Admin: Obtener balance de un vendedor especifico' })
-  getVendorBalance(@Param('vendorId', ParseIntPipe) vendorId: number) {
-    return this.vendorPayoutsService.calculateVendorBalance(vendorId);
+  async getVendorBalance(@Param('vendorId', ParseIntPipe) vendorId: number, @Res() res: Response) {
+    const result = await this.vendorPayoutsService.calculateVendorBalance(vendorId);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   // ============================================
@@ -91,8 +95,9 @@ export class VendorPayoutsController {
   @ApiOperation({
     summary: 'Admin: Crear payout para un vendedor especifico',
   })
-  createPayout(@Body() dto: ProcessPayoutDto) {
-    return this.vendorPayoutsService.createPayout(dto.vendorId);
+  async createPayout(@Body() dto: ProcessPayoutDto, @Res() res: Response) {
+    const result = await this.vendorPayoutsService.createPayout(dto.vendorId);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   @Post('create-multiple')
@@ -101,8 +106,9 @@ export class VendorPayoutsController {
     summary:
       'Admin: Crear payouts para multiples vendedores (o todos los elegibles)',
   })
-  createMultiplePayouts(@Body() dto: ProcessMultiplePayoutsDto) {
-    return this.vendorPayoutsService.createMultiplePayouts(dto.vendorIds);
+  async createMultiplePayouts(@Body() dto: ProcessMultiplePayoutsDto, @Res() res: Response) {
+    const result = await this.vendorPayoutsService.createMultiplePayouts(dto.vendorIds);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   @Post('execute/:payoutId')
@@ -110,15 +116,17 @@ export class VendorPayoutsController {
   @ApiOperation({
     summary: 'Admin: Ejecutar transferencia real para un payout',
   })
-  executePayoutTransfer(@Param('payoutId', ParseIntPipe) payoutId: number) {
-    return this.vendorPayoutsService.executePayoutTransfer(payoutId);
+  async executePayoutTransfer(@Param('payoutId', ParseIntPipe) payoutId: number, @Res() res: Response) {
+    const result = await this.vendorPayoutsService.executePayoutTransfer(payoutId);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   @Delete(':payoutId')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Admin: Cancelar un payout pendiente' })
-  cancelPayout(@Param('payoutId', ParseIntPipe) payoutId: number) {
-    return this.vendorPayoutsService.cancelPayout(payoutId);
+  async cancelPayout(@Param('payoutId', ParseIntPipe) payoutId: number, @Res() res: Response) {
+    const result = await this.vendorPayoutsService.cancelPayout(payoutId);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   // ============================================
@@ -138,20 +146,23 @@ export class VendorPayoutsController {
   @ApiOperation({ summary: 'Admin: Ver todos los payouts' })
   @ApiQuery({ name: 'status', required: false, enum: PayoutStatus })
   @ApiQuery({ name: 'vendorId', required: false, type: Number })
-  getAllPayouts(
+  async getAllPayouts(
     @Query('status') status?: PayoutStatus,
     @Query('vendorId') vendorId?: string,
+    @Res() res?: Response,
   ) {
     const filters: any = {};
     if (status) filters.status = status;
     if (vendorId) filters.vendorId = parseInt(vendorId);
-    return this.vendorPayoutsService.getAllPayouts(filters);
+    const result = await this.vendorPayoutsService.getAllPayouts(filters);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 
   @Get('vendor/:vendorId/payouts')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Admin: Ver payouts de un vendedor especifico' })
-  getVendorPayouts(@Param('vendorId', ParseIntPipe) vendorId: number) {
-    return this.vendorPayoutsService.getVendorPayouts(vendorId);
+  async getVendorPayouts(@Param('vendorId', ParseIntPipe) vendorId: number, @Res() res: Response) {
+    const result = await this.vendorPayoutsService.getVendorPayouts(vendorId);
+    return res.status(HttpStatus.OK).json({ status: 200, message: 'ok', result });
   }
 }

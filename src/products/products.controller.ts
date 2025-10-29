@@ -19,7 +19,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { Request, Response } from 'express';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { RolesGuard } from 'src/common/guards/roles.guard';
+import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
@@ -352,6 +352,86 @@ export class ProductsController {
     }
   }
 
+  @Get('/owner/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UsePipes(new ValidationPipe())
+  @ApiOperation({ summary: 'Get all products (active and inactive) for the owner' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Successfully retrieved all products (active and inactive) for the owner.',
+    schema: {
+      example: {
+        status: 200,
+        message: 'ok',
+        result: {
+          products: [
+            {
+              id: 'product-id-1',
+              name: 'Sample Product 1',
+              price: 100,
+              isActive: true,
+            },
+            {
+              id: 'product-id-2',
+              name: 'Sample Product 2',
+              price: 200,
+              isActive: false,
+            },
+          ],
+          totalPages: 1,
+          totaProduct: 1000,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized access. User is not authenticated.',
+    schema: {
+      example: {
+        status: 'Error',
+        message: 'Unauthorized access.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'An unexpected error occurred.',
+    schema: {
+      example: {
+        status: 'Error',
+        message: 'An unexpected error occurred.',
+      },
+    },
+  })
+  async getAllProductsByOwner(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query() pagination: PaginationDto,
+    @Query('phones') phones?: string,
+  ) {
+    const user = req.user as any;
+    const userId = user?.id;
+    try {
+      const result = await this.productsService.getAllProductsByOwner(
+        { userId, phones },
+        pagination,
+      );
+      return res.status(HttpStatus.OK).json({
+        status: 200,
+        message: 'ok',
+        result,
+      });
+    } catch (err) {
+      console.log(err);
+      res.statusMessage = err.response?.message || 'Internal Server Error';
+      return res.status(err.status || 500).json({
+        status: err.response?.statusCode || 500,
+        message: err.response?.message || 'Error',
+      });
+    }
+  }
+
   @Get('/match')
   @UsePipes(new ValidationPipe())
   @ApiOperation({ summary: 'Get products that match with query' })
@@ -520,6 +600,62 @@ export class ProductsController {
       return res.status(HttpStatus.OK).json({
         status: 200,
         message: 'Product deleted successfully',
+        result,
+      });
+    } catch (err) {
+      const HttpException = require('@nestjs/common').HttpException;
+      const status = err instanceof HttpException ? err.getStatus() : 500;
+      const message = err?.message || 'Internal Server Error';
+      return res.status(status).json({
+        status,
+        message,
+      });
+    }
+  }
+
+  @Patch(':id/toggle-status')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Toggle product active status (activate/deactivate)' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Product status toggled successfully.',
+    schema: {
+      example: {
+        status: 200,
+        message: 'Product status toggled successfully',
+        result: {
+          id: 1,
+          name: 'Sample Product',
+          isActive: true,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized. User is not the owner of this product.',
+    schema: {
+      example: {
+        status: 'Error',
+        message: 'You are not authorized to modify this product',
+      },
+    },
+  })
+  async toggleProductStatus(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const user = req.user as any;
+    const userId = user?.id;
+    try {
+      const result = await this.productsService.toggleProductStatus(
+        Number(id),
+        userId,
+      );
+      return res.status(HttpStatus.OK).json({
+        status: 200,
+        message: 'Product status toggled successfully',
         result,
       });
     } catch (err) {

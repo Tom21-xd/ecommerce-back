@@ -114,9 +114,12 @@ export class ProductsService {
   async getAllProducts(paginationDTO: PaginationDto) {
     const { limit = 10, offset = 0 } = paginationDTO;
 
+    const where = { isActive: true };
+
     const [totalProducts, products] = await this.prismaService.$transaction([
-      this.prismaService.product.count(),
+      this.prismaService.product.count({ where }),
       this.prismaService.product.findMany({
+        where,
         skip: Number(offset),
         take: Number(limit),
         include: productFullInclude,
@@ -135,6 +138,7 @@ export class ProductsService {
     const { limit = 10, offset = 0 } = paginationDTO;
 
     const where = {
+      isActive: true,
       container: { user: { role: 'SELLER' as const } },
     };
 
@@ -171,6 +175,40 @@ export class ProductsService {
       userId = user.id;
     }
     if (!userId) throw new NotFoundException('User not found');
+    const where = { isActive: true, container: { userId } };
+    const [totalProducts, products] = await this.prismaService.$transaction([
+      this.prismaService.product.count({ where }),
+      this.prismaService.product.findMany({
+        where,
+        skip: Number(offset),
+        take: Number(limit),
+        include: productFullInclude,
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+    return {
+      products,
+      totalPages: pages(totalProducts, limit),
+      totalProducts,
+    };
+  }
+
+  async getAllProductsByOwner(
+    params: { userId?: number; phones?: string },
+    paginationDTO: PaginationDto,
+  ) {
+    const { limit = 10, offset = 0 } = paginationDTO;
+    let userId = params.userId;
+    if (!userId && params.phones) {
+      // Buscar el usuario por phones
+      const user = await this.prismaService.user.findFirst({
+        where: { phones: params.phones },
+      });
+      if (!user) throw new NotFoundException('User not found');
+      userId = user.id;
+    }
+    if (!userId) throw new NotFoundException('User not found');
+    // Este método muestra TODOS los productos del dueño (activos e inactivos)
     const where = { container: { userId } };
     const [totalProducts, products] = await this.prismaService.$transaction([
       this.prismaService.product.count({ where }),
@@ -194,6 +232,7 @@ export class ProductsService {
 
     const products = await this.prismaService.product.findMany({
       where: {
+        isActive: true,
         OR: [
           {
             name: {
@@ -227,7 +266,7 @@ export class ProductsService {
       where: { id },
       include: productFullInclude,
     });
-    if (!product) {
+    if (!product || !product.isActive) {
       throw new NotFoundException('Product not found');
     }
     return product;
@@ -307,7 +346,32 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-    await this.prismaService.product.delete({ where: { id } });
+    // Soft delete: marcar el producto como inactivo en lugar de eliminarlo
+    await this.prismaService.product.update({
+      where: { id },
+      data: { isActive: false },
+    });
     return { deleted: true, id };
+  }
+
+  async toggleProductStatus(id: number, userId: number) {
+    const product = await this.prismaService.product.findUnique({
+      where: { id },
+      include: { container: true },
+    });
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+    // Verificar que el usuario sea el dueño del producto
+    if (product.container.userId !== userId) {
+      throw new NotFoundException('You are not authorized to modify this product');
+    }
+    // Cambiar el estado del producto
+    const updatedProduct = await this.prismaService.product.update({
+      where: { id },
+      data: { isActive: !product.isActive },
+      include: productFullInclude,
+    });
+    return updatedProduct;
   }
 }

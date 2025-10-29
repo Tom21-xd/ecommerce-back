@@ -145,6 +145,34 @@ export class UsersService {
     return user;
   }
 
+  async upgradeToSeller(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    if (user.role === 'SELLER') {
+      throw new BadRequestException('El usuario ya es vendedor');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { role: 'SELLER' },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        phones: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updated;
+  }
+
   async remove(id: number) {
     const user = await this.prisma.user.findUnique({
       where: {

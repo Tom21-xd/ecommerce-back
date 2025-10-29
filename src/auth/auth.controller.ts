@@ -73,11 +73,13 @@ export class AuthController {
         user: userSession,
       });
     } catch (err) {
-      console.log(err);
-      response.statusMessage = err.response?.message || 'Internal Server Error';
-      return response.status(err.status).json({
-        status: err.response.statusCode,
-        message: err.response.message,
+      console.error('Validation error:', err);
+      const status = err.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = err.response?.message || err.message || 'Error al validar sesión';
+      response.statusMessage = message;
+      return response.status(status).json({
+        status: 'Error',
+        message: message,
       });
     }
   }
@@ -163,11 +165,13 @@ export class AuthController {
         },
       });
     } catch (err) {
-      console.log(err);
-      response.statusMessage = err.response?.message || 'Internal Server Error';
-      return response.status(err.status).json({
-        status: err.response.statusCode,
-        message: err.response.message,
+      console.error('Login error:', err);
+      const status = err.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = err.response?.message || err.message || 'Error al iniciar sesión';
+      response.statusMessage = message;
+      return response.status(status).json({
+        status: 'Error',
+        message: message,
       });
     }
   }
@@ -253,11 +257,13 @@ export class AuthController {
         },
       });
     } catch (err) {
-      console.log(err);
-      response.statusMessage = err.response?.message || 'Internal Server Error';
-      return response.status(err.status).json({
-        status: err.response.statusCode,
-        message: err.response.message,
+      console.error('Registration error:', err);
+      const status = err.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = err.response?.message || err.message || 'Error al registrar la cuenta';
+      response.statusMessage = message;
+      return response.status(status).json({
+        status: 'Error',
+        message: message,
       });
     }
   }
