@@ -32,9 +32,9 @@ export class ShipmentsController {
   }
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Update shipment (admin)' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SELLER, Role.BUYER)
+  @ApiOperation({ summary: 'Update shipment status' })
   async update(
     @Param('id') id: string,
     @Body() body: any,

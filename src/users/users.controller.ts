@@ -112,8 +112,8 @@ export class UsersController {
     }
   }
 
+  @Public()
   @Get('/by-role')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all users by role' })
   async getUsersByRole(
     @Req() req: Request,

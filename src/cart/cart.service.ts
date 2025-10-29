@@ -221,6 +221,13 @@ export class CartService {
       0,
     );
 
+    // Validar monto mínimo de 5000 COP
+    if (total < 5000) {
+      throw new BadRequestException(
+        'El monto mínimo para crear un pedido es de $5,000 COP',
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.pedido.create({
         data: {

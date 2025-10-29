@@ -119,6 +119,13 @@ export class PaymentsService {
 
     const amount = dto.amount ?? Number(pedido.precio_total);
 
+    // Validar monto mínimo de 5000 COP
+    if (amount < 5000) {
+      throw new BadRequestException(
+        'El monto mínimo para realizar un pago es de $5,000 COP',
+      );
+    }
+
     // Crear el registro de pago pendiente
     const payment = await this.prisma.payment.create({
       data: {
@@ -153,7 +160,7 @@ export class PaymentsService {
       test: isTestMode, // Modo de prueba del admin
       externalRef,
       confirmationUrl: `${apiUrl}/payments/webhook/epayco`,
-      responseUrl: `${frontendUrl}/orders/${dto.pedidoId}`,
+      responseUrl: `${frontendUrl}/`, // Redirigir al home después del pago
     };
 
     return buttonData;
